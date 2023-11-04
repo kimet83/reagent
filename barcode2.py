@@ -24,13 +24,21 @@ def analyze_barcode(barcode_receive):
             # print("lot:",lot)
         elif check1=='17': #exp
             exp = barcode_receive[start:start+date_length]
-            check2 = barcode_receive[date_length+start:date_length+start+2]
-            start = start+date_length+2
+            if barcode_receive[date_length+start:date_length+start+1]== ' ':
+                check2 = barcode_receive[date_length+start+1:date_length+start+3]
+                start = start+date_length+3
+            else:
+                check2 = barcode_receive[date_length+start:date_length+start+2]
+                start = start+date_length+2
             # print("exp.date:",exp)
         elif check1=='11': #pd
             pd = barcode_receive[start:start+date_length]
-            check2 = barcode_receive[date_length+start:date_length+start+2]
-            start = start+date_length+2
+            if barcode_receive[date_length+start:date_length+start+1]== ' ':
+                check2 = barcode_receive[date_length+start+1:date_length+start+3]
+                start = start+date_length+3
+            else:
+                check2 = barcode_receive[date_length+start:date_length+start+2]
+                start = start+date_length+2
             # print("pd.date:",pd)
         elif check1=='24': #ref
             start = start+1
@@ -62,13 +70,21 @@ def analyze_barcode(barcode_receive):
             # print("lot:",lot)
         elif check2=='17': #exp
             exp = barcode_receive[start:start+date_length]
-            check3 = barcode_receive[date_length+start:date_length+start+2]
-            start = start+date_length+2
+            if barcode_receive[date_length+start:date_length+start+1]== ' ':
+                check3 = barcode_receive[date_length+start+1:date_length+start+3]
+                start = start+date_length+3
+            else:
+                check3 = barcode_receive[date_length+start:date_length+start+2]
+                start = start+date_length+2
             # print("exp.date:",exp)
         elif check2=='11': #pd
             pd = barcode_receive[start:start+date_length]
-            check3 = barcode_receive[date_length+start:date_length+start+2]
-            start = start+date_length+2
+            if barcode_receive[date_length+start:date_length+start+1]== ' ':
+                check3 = barcode_receive[date_length+start+1:date_length+start+3]
+                start = start+date_length+3
+            else:
+                check3 = barcode_receive[date_length+start:date_length+start+2]
+                start = start+date_length+2
             # print("pd.date:",pd)
         elif check2=='24': #ref
             start = start+1
@@ -100,13 +116,21 @@ def analyze_barcode(barcode_receive):
             # print("lot:",lot)
         elif check3=='17': #exp
             exp = barcode_receive[start:start+date_length]
-            check4 = barcode_receive[date_length+start:date_length+start+2]
-            start = start+date_length+2
+            if barcode_receive[date_length+start:date_length+start+1]== ' ':
+                check4 = barcode_receive[date_length+start+1:date_length+start+3]
+                start = start+date_length+3
+            else:
+                check4 = barcode_receive[date_length+start:date_length+start+2]
+                start = start+date_length+2
             # print("exp.date:",exp)
         elif check3=='11': #pd
             pd = barcode_receive[start:start+date_length]
-            check4 = barcode_receive[date_length+start:date_length+start+2]
-            start = start+date_length+2
+            if barcode_receive[date_length+start:date_length+start+1]== ' ':
+                check4 = barcode_receive[date_length+start+1:date_length+start+3]
+                start = start+date_length+3
+            else:
+                check4 = barcode_receive[date_length+start:date_length+start+2]
+                start = start+date_length+2
             # print("pd.date:",pd)
         elif check3=='24': #ref
             start = start+1
@@ -138,13 +162,21 @@ def analyze_barcode(barcode_receive):
             # print("lot:",lot)
         elif check4=='17': #exp
             exp = barcode_receive[start:start+date_length]
-            check5 = barcode_receive[date_length+start:date_length+start+2]
-            start = start+date_length+2
+            if barcode_receive[date_length+start:date_length+start+1]== ' ':
+                check5 = barcode_receive[date_length+start+1:date_length+start+3]
+                start = start+date_length+3
+            else:
+                check5 = barcode_receive[date_length+start:date_length+start+2]
+                start = start+date_length+2
             # print("exp.date:",exp)
         elif check4=='11': #pd
             pd = barcode_receive[start:start+date_length]
-            check5 = barcode_receive[date_length+start:date_length+start+2]
-            start = start+date_length+2
+            if barcode_receive[date_length+start:date_length+start+1]== ' ':
+                check5 = barcode_receive[date_length+start+1:date_length+start+3]
+                start = start+date_length+3
+            else:
+                check5 = barcode_receive[date_length+start:date_length+start+2]
+                start = start+date_length+2
             # print("pd.date:",pd)
         elif check4=='24': #ref
             start = start+1
@@ -177,13 +209,21 @@ def analyze_barcode(barcode_receive):
             # print("lot:",lot)
         elif check5=='17': #exp
             exp = barcode_receive[start:start+date_length]
-            check6 = barcode_receive[date_length+start:date_length+start+2]
-            start = start+date_length+2
+            if barcode_receive[date_length+start:date_length+start+1]== ' ':
+                check6 = barcode_receive[date_length+start+1:date_length+start+3]
+                start = start+date_length+3
+            else:
+                check6 = barcode_receive[date_length+start:date_length+start+2]
+                start = start+date_length+2
             # print("exp.date:",exp)
         elif check5=='11': #pd
             pd = barcode_receive[start:start+date_length]
-            check6 = barcode_receive[date_length+start:date_length+start+2]
-            start = start+date_length+2
+            if barcode_receive[date_length+start:date_length+start+1]== ' ':
+                check6 = barcode_receive[date_length+start+1:date_length+start+3]
+                start = start+date_length+3
+            else:
+                check6 = barcode_receive[date_length+start:date_length+start+2]
+                start = start+date_length+2
             # print("pd.date:",pd)
         elif check5=='24': #ref
             start = start+1

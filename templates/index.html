@@ -5,7 +5,6 @@
   <meta charset="UTF-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
   <script src="/static/script.js"></script>
   <script src="/static/jquery-3.7.1.min.js"></script>
   <link href="/static/bootstrap-5.3.2/css/bootstrap.min.css" rel="stylesheet"
@@ -14,10 +13,11 @@
     integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
     crossorigin="anonymous"></script>
 
-  <link rel="icon" type="image/x-icon" href="/static.favicon.ico">
+    <link rel="icon" type="image/x-icon" href="/static.favicon.ico">
 
   <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" type="text/css" href="/static/styles.css">
+
 
   <title>시약 입출고 관리</title>
   <style>
@@ -27,6 +27,7 @@
   <script>
 
     $(document).ready(function () {
+      let page = 1
       // 기본날짜
       fetch('/current_date').then((res) => res.json()).then((data) => {
         let start = data["start"];
@@ -36,7 +37,7 @@
         $("#end").val(today);
         $("#date_manual").val(today);
         select();
-        search();
+        search1();
       })
     });
 
@@ -148,7 +149,7 @@
           $("#reagent_search").append(temp_html);
         });
       });
-      search();
+      search1();
     };
 
     function save_order() {
@@ -178,50 +179,35 @@
         console.log(rows)
         let rows2 = data['barcode']
         console.log(rows2)
-
-        if (rows == null) {
+        
+        if (rows==null) {
           var name = null;
-          var lot = rows2['lot'];
-          var exp = rows2['exp'];
-          var gtin = rows2['gtin'];
-          var instrument = null
-          var code = null
-          var temp = null
-          var volume = null
-          var total_ea = null
-          var ref = rows2['ref'];
-          var onboard = null
-
+        var lot = rows2['lot'];
+        var exp = rows2['exp'];
+        var gtin = rows2['gtin'];
+        var instrument = null
+        var code = null
+        var temp = null
+        var volume = null
+        var total_ea = null
+        var ref = rows2['ref'];
+        var onboard = null
+        
         }
         else {
           var name = rows['name'];
-          var lot = rows2['lot'];
-          var exp = rows2['exp'];
-          var gtin = rows2['gtin'];
-          var instrument = rows['instrument']
-          var code = rows['code'];
-          var temp = rows['temp'];
-          var volume = rows['volume'];
-          var total_ea = rows['total_ea'];
-          var ref = rows2['ref'];
-          var onboard = rows['onboard']
-
-        }
-
-        console.log(name, lot, exp, gtin, instrument, code, temp, volume, total_ea, onboard)
-        // let name = data['name'];
-        // let lot = data['lot'];
-        // let exp = data['exp'];
-        // let gtin = data['gtin'];
-        // let instrument = data['instrument']
-        // let code = data['code'];
-        // let temp = data['temp'];
-        // let volume = data['volume'];
-        // let total_ea = data['total_ea'];
-        // let ref = data['ref'];
-        // let onboard = data['onboard']
-
-
+        var lot = rows2['lot'];
+        var exp = rows2['exp'];
+        var gtin = rows2['gtin'];
+        var instrument = rows['instrument']
+        var code = rows['code'];
+        var temp = rows['temp'];
+        var volume = rows['volume'];
+        var total_ea = rows['total_ea'];
+        var ref = rows2['ref'];
+        var onboard = rows['onboard']
+        
+      }
         if (ref != 'other') {
           $("#nameform").empty();
 
@@ -241,9 +227,6 @@
     <input type="text" class="form-control" value="${name}" id="name">`
           $("#nameform").append(temp_html_name);
         }
-
-
-
 
         $("#lotform").empty();
         let temp_html_lot = `<label for="lot" class="form-label">Lot No.</label>
@@ -307,7 +290,7 @@
         var inputea = document.getElementById("ea");
         inputea.focus();
 
-        search();
+        search1();
       });
     }
     function save(ref) {
@@ -360,7 +343,7 @@
 
       fetch('/save', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
 
-        search();
+        search1();
       });
       $("#detail").empty()
       let temp_html = `<form class="row g-2" >
@@ -446,191 +429,145 @@
       $("#detail").append(temp_html);
       select()
       // console.log(post_gtin);
+      var inputbarcode = document.getElementById("barcode");
+        inputbarcode.value = "";
+        input.focus();
     }
 
     function manual_save() {
-      let input_lot = document.getElementById("lot_manual");
-      let input_gtin = document.getElementById("name_manual_search");
-      let input_date = document.getElementById("date_manual");
-      let input_expdate = document.getElementById("expdate_manual")
-      let input_ea = document.getElementById("ea_manual");
-      if (input_lot.value === "") {
-        alert("Lot No.를 입력해 주세요.");
-        input_lot.focus();
-        return false;
-      }
-      if (input_gtin.value === "") {
-        alert("시약을 선택해주세요.");
-        input_gtin.focus();
-        return false;
-      }
-      if (input_date.value === "") {
-        alert("입고일을 입력해주세요.");
-        input_date.focus();
-        return false;
-      }
-      if (input_expdate.value === "") {
-        alert("유효기간을 입력해주세요.");
-        input_expdate.focus();
-        return false;
-      }
-      if (input_ea.value === "") {
-        alert("입고 수량을 입력해 주세요.");
-        input_ea.focus();
-        return false;
-      }
-      let barcode = "0"
-      let post_date = $("#date_manual").val();
-      let post_gtin = $("#name_manual_search").val();
-      let post_exp = $("#expdate_manual").val();
-      let post_lot = $("#lot_manual").val();
-      let post_ea = $("#ea_manual").val();
-      let post_user = $("#user").val();
-      let comment = $("#comment_manual").val();
+  // 필드의 id를 배열로 정의
+  const fieldIds = ["lot_manual", "name_manual_search", "date_manual", "expdate_manual", "ea_manual"];
+
+  // 필드가 비어있는지 확인하는 함수
+  function validateField(id, message) {
+    const inputField = document.getElementById(id);
+    const value = inputField.value;
+    if (!value) {
+      alert(message);
+      inputField.focus();
+      return false;
+    }
+    return true;
+  }
+
+  // 필수 필드의 유효성을 검사
+  for (const fieldId of fieldIds) {
+    if (!validateField(fieldId, "입력해주세요.")) {
+      return;
+    }
+  }
+
+  // 나머지 데이터를 수집
+  const post_date = $("#date_manual").val();
+  const post_gtin = $("#name_manual_search").val();
+  const post_exp = $("#expdate_manual").val();
+  const post_lot = $("#lot_manual").val();
+  const post_ea = $("#ea_manual").val();
+  const post_user = $("#user").val();
+  const comment = $("#comment_manual").val();
+
+  // FormData 객체 생성
+  const formData = new FormData();
+  formData.append("date_give", post_date);
+  formData.append("gtin_give", post_gtin);
+  formData.append("exp_give", post_exp);
+  formData.append("lot_give", post_lot);
+  formData.append("ea_give", post_ea);
+  formData.append("username", post_user);
+  formData.append("comment", comment);
+
+  console.log(formData);
+
+  // 서버로 데이터 전송
+  fetch('/save_m', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+    $("#modal").empty();
+    search1();
+  });
+  var inputbarcode = document.getElementById("barcode");
+        inputbarcode.value = "";
+        input.focus();
+}
 
 
-      let formData = new FormData();
-      formData.append("date_give", post_date);
-      formData.append("gtin_give", post_gtin);
-      formData.append("exp_give", post_exp);
-      formData.append("lot_give", post_lot);
-      formData.append("ea_give", post_ea);
-      formData.append("username", post_user);
-      formData.append("comment", comment);
-      console.log(formData)
+    function search1(page=1) {
+  let start = $("#start").val();
+  let end = $("#end").val();
+  let instrument_search = document.getElementById("instrument_search").value;
+  let code_search = document.getElementById("code_search").value;
+  let reagent_search = document.getElementById("reagent_search").value;
+  let pages=$("#pages").val();
+  let formData = new FormData();
+  formData.append("start_give", start);
+  formData.append("end_give", end);
+  formData.append("instrument_give", instrument_search);
+  formData.append("code_give", code_search);
+  formData.append("gtin", reagent_search);
 
-      fetch('/save_m', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+  fetch('/search', { method: "POST", body: formData })
+    .then((res) => res.json())
+    .then((data) => {
+      $("#order-box").empty();
+      let rows = data['result'];
+      let itemsPerPage = 8
+      let startIndex = (page - 1) * itemsPerPage;
+      let endIndex = startIndex + itemsPerPage;
+      let currentPageData = rows.slice(startIndex, endIndex);
 
-        $("#modal").empty()
-        search();
+      currentPageData.forEach((c) => {
+        let id = c["id"];
+        let in_date = c["date"].substr(2);
+        let name = c["name"];
+        let lot = c["lot"];
+        let exp = c["exp"].substr(2);
+        let ref = c["ref"];
+        let code = c["code"];
+        let out_date = c['out_date'];
+        let instrument = c['instrument'];
+        let status = c['status'];
+        let in_user = c['in_user'];
+        let comment = c['comment'];
+
+        let badgeUsed = out_date !== null ? '<span class="badge text-bg-secondary">Used</span>' : '';
+        let badgeExpired = out_date === null && status === "expired" ? '<span class="badge text-bg-danger">Expired</span>' : '';
+        let badgePrimary = (comment === null || comment.trim() === "") ? '' : '<span class="badge text-bg-primary">!</span>';
+
+
+
+        let temp_html = `
+          <tr>
+            <td>${in_date}</td>
+            <td>${instrument}</td>
+            <td>${code}</td>
+            <td class="name" data-bs-toggle="modal" data-bs-target="#manualinput" onclick="comment_modal('${id}')">${name}${badgeUsed}${badgeExpired}${badgePrimary}</td>
+            <td>${lot}</td>
+            <td>${exp}</td>
+            <td>${in_user}</td>
+            <td><button onclick="del_order('${id}')" class="btn btn-warning btn-sm">삭제</button></td>
+          </tr>`;
+        $("#order-box").append(temp_html);
       });
 
+      createPaginationControls(data['result'].length, itemsPerPage, page);
+    });
+}
+
+
+function createPaginationControls(totalItems, itemsPerPage, currentPage) {
+  let totalPages = Math.ceil(totalItems / itemsPerPage);
+  let paginationHtml = '<ul class="pagination">';
+
+  for (let i = 1; i <= totalPages; i++) {
+    if (i === currentPage) {
+      paginationHtml += `<li class="page-item active"><a class="page-link" href="#" onclick="search1(${i})">${i}</a></li>`;
+    } else {
+      paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="search1(${i})">${i}</a></li>`;
     }
+  }
 
-    function search() {
-      let start = $("#start").val();
-      let end = $("#end").val();
-      // let instrument_search = $("#instrument_search").val();
-      let instrument_search = document.getElementById("instrument_search").value;
-      let code_search = document.getElementById("code_search").value;
-      // var instrument_search = document.querySelector('input[name="instrumnet_search"]:checked').value;
-      let reagent_search = document.getElementById("reagent_search").value;
-      let formData = new FormData();
-      formData.append("start_give", start);
-      formData.append("end_give", end);
-      formData.append("instrument_give", instrument_search)
-      formData.append("code_give", code_search)
-      formData.append("gtin", reagent_search)
+  paginationHtml += '</ul>';
+  $("#pagination").html(paginationHtml);
+}
 
-      fetch('/search', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
-
-        $("#order-box").empty();
-
-        let rows = data['result']
-        console.log(rows)
-
-        rows.forEach((c) => {
-          let id = c["id"];
-          let in_date = c["date"].substr(2);
-          let name = c["name"];
-          let lot = c["lot"];
-          let exp = c["exp"].substr(2);
-          let ref = c["ref"];
-          let code = c["code"];
-          let out_date = c['out_date']
-          let instrument = c['instrument']
-          let status = c['status']
-          let in_user = c['in_user']
-          let comment = c['comment']
-          // console.log(status)
-          if (comment !== null) {
-            if (out_date !== null) {//use,useable
-              // console.log("usable")
-              let temp_html = `          <tr >
-            <td>${in_date}</td><td>${instrument}</td><td>${code}</td>
-            <td class="name" data-bs-toggle="modal" data-bs-target="#manualinput" onclick="comment_modal('${id}')">${name}<span class="badge text-bg-secondary">Used</span><span class="badge text-bg-primary">!</span></td>
-            <td>${lot}</td>
-            <td>${exp}</td>
-            <td>${in_user}</td>
-            
-            <td><button onclick="del_order('${id}')" class="btn btn-warning btn-sm">삭제</button></tr>
-          </tr>`;
-              $("#order-box").append(temp_html);
-            }
-
-            else if (out_date == null && status == "expired") {//not use,expired
-              let temp_html = `          <tr >
-              <td>${in_date}</td><td>${instrument}</td><td>${code}</td>
-            <td class="name" data-bs-toggle="modal" data-bs-target="#manualinput" onclick="comment_modal('${id}')">${name}<span class="badge text-bg-danger">Expired</span><span class="badge text-bg-primary">!</span></td>
-            <td>${lot}</td>
-            <td>${exp}</td>
-            <td>${in_user}</td>
-            
-            <td><button onclick="del_order('${id}')" class="btn btn-warning btn-sm">삭제</button></tr>
-          </tr>`;
-              $("#order-box").append(temp_html);
-            }
-
-
-            else {//not use,not expired
-              let temp_html = `          <tr >
-            <td>${in_date}</td><td>${instrument}</td><td>${code}</td>
-            <td class="name" data-bs-toggle="modal" data-bs-target="#manualinput" onclick="comment_modal('${id}')">${name}<span class="badge text-bg-primary">!</span></td>
-            <td>${lot}</td>
-            <td>${exp}</td>
-            <td>${in_user}</td>
-            <td><button onclick="del_order('${id}')" class="btn btn-warning btn-sm">삭제</button></tr>
-          </tr>`;
-              $("#order-box").append(temp_html);
-            }
-          }
-          else {
-            if (out_date !== null) {//use,useable
-              // console.log("usable")
-              let temp_html = `          <tr >
-            <td>${in_date}</td><td>${instrument}</td><td>${code}</td>
-            <td class="name" data-bs-toggle="modal" data-bs-target="#manualinput" onclick="comment_modal('${id}')">${name}<span class="badge text-bg-secondary">Used</span></td>
-            <td>${lot}</td>
-            <td>${exp}</td>
-            <td>${in_user}</td>
-            
-            <td><button onclick="del_order('${id}')" class="btn btn-warning btn-sm">삭제</button></tr>
-          </tr>`;
-              $("#order-box").append(temp_html);
-            }
-
-            else if (out_date == null && status == "expired") {//not use,expired
-              let temp_html = `          <tr >
-              <td>${in_date}</td><td>${instrument}</td><td>${code}</td>
-            <td class="name" data-bs-toggle="modal" data-bs-target="#manualinput" onclick="comment_modal('${id}')">${name}<span class="badge text-bg-danger">Expired</span></td>
-            <td>${lot}</td>
-            <td>${exp}</td>
-            <td>${in_user}</td>
-            
-            <td><button onclick="del_order('${id}')" class="btn btn-warning btn-sm">삭제</button></tr>
-          </tr>`;
-              $("#order-box").append(temp_html);
-            }
-
-
-            else {//not use,not expired
-              let temp_html = `          <tr >
-            <td>${in_date}</td><td>${instrument}</td><td>${code}</td>
-            <td class="name" data-bs-toggle="modal" data-bs-target="#manualinput" onclick="comment_modal('${id}')">${name}</td>
-            <td>${lot}</td>
-            <td>${exp}</td>
-            <td>${in_user}</td>
-            <td><button onclick="del_order('${id}')" class="btn btn-warning btn-sm">삭제</button></tr>
-          </tr>`;
-              $("#order-box").append(temp_html);
-            }
-          }
-        });
-
-      });
-
-
-    }
     function manual() {
       $("#modal").empty();
       let temp_html = `<div class="modal-content">
@@ -695,12 +632,12 @@
       // console.log(id)
       let formData = new FormData();
       formData.append("id", id);
-      fetch('/comment', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
-
+      fetch('/comment',{method: "POST", body: formData,}).then((res) => res.json()).then((data) => {
+        
         comment = data['result'][0]['comment']
-        if (comment == null) {
+        if (comment == null){
           $("#modal").empty();
-          let temp_html = `
+        let temp_html = `
         <div class="modal-content">
         <div class="modal-header">
           <h1 class="modal-title fs-5" id="manualinputLabel">시약 특이사항</h1>
@@ -718,11 +655,11 @@
           <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="comment_save('${id}')">등록/수정</button>
         </div>
       </div>`
-          $("#modal").append(temp_html);
+      $("#modal").append(temp_html);
         }
         else {
           $("#modal").empty();
-          let temp_html = `
+        let temp_html = `
         <div class="modal-content">
         <div class="modal-header">
           <h1 class="modal-title fs-5" id="manualinputLabel">시약 특이사항</h1>
@@ -740,24 +677,24 @@
           <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="comment_save('${id}')">등록/수정</button>
         </div>
       </div>`
-          $("#modal").append(temp_html);
+      $("#modal").append(temp_html);
         }
-
+        
         console.log(id)
-
+        
       })
     }
 
     function comment_save(id) {
       let comment = $("#comment_modal").val();
       let formData = new FormData();
-      formData.append('id', id);
-      formData.append('comment', comment);
-      fetch('/comment_save', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+      formData.append('id',id);
+      formData.append('comment',comment);
+      fetch('/comment_save',{method: "POST", body: formData,}).then((res) =>res.json()).then((data)=> {
         $("#modal").empty();
-        search()
+        search1()
       })
-
+      
     }
 
 
@@ -765,7 +702,7 @@
       let formData = new FormData();
       formData.append("del_give", del);
       fetch('/del', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
-        search();
+        search1();
       });
     }
 
@@ -947,15 +884,20 @@
 
         </select>
         <span class="input-group-text">시약명</span>
-        <select id="reagent_search" class="form-select" onchange="search()">
+        <select id="reagent_search" class="form-select" onchange="search1()">
           <option selected value="all">전체</option>
         </select>
         <span class="input-group-text">기간</span>
-        <input id="start" type="date" class="form-control" onchange="search()" />
+        <input id="start" type="date" class="form-control" onchange="search1()" />
         <span class="input-group-text">~</span>
-        <input id="end" type="date" class="form-control" onchange="search()" />
+        <input id="end" type="date" class="form-control" onchange="search1()" />
         <!-- <span><button onclick="search()" type="button" class="btn btn-warning mybtn">검색</button></span> -->
       </div>
+      <!-- <div class="input-group input-group-sm mb-3">
+        
+        <span class="input-group-text">페이지당 조회</span>
+        <input type="number" class="form-control" id="view" onchange="search1()" value="10">
+      </div> -->
     </div>
     <div>
       <table class="table">
@@ -974,6 +916,10 @@
         <tbody id="order-box" class="align-middle">
         </tbody>
       </table>
+      <div class="container">
+
+      <span class="page" id="pagination"></span>
+      
     </div>
   </div>
 

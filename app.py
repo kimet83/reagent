@@ -145,19 +145,10 @@ def file_path(path):
             return "템플릿이 존재하지 않습니다."
     else:
         return redirect(url_for('home'))
-    
-# @app.route('/<path>')
-# def file_path(path):
-#     # return render_template(f'{path}.html')
-#     if 'user_info' in session:
-#         user_info = session['user_info']
-#         # 여기에서 사용자 정보를 활용하여 페이지를 렌더링하거나 다른 작업을 수행할 수 있습니다.
-#         return render_template(f'{path}.html', user_info=user_info)
-#     else:
-#         return redirect(url_for('home'))  # 로그인되지 않은 경우 로그인 페이지로 리디렉션
-    
-  
 
+
+# 시약입고; index.html
+# 로그인시 첫화면
 @app.route('/index')
 def index():
     # return render_template('index.html')
@@ -178,31 +169,26 @@ def inreagent():
     print(barcode_receive)
     ref, lot, exp, gtin = barcode2.analyze_barcode(barcode_receive) #barcode analysis
     print(ref, lot, exp, gtin)
-    # print(exp[4:6])
-    # if exp[4:6]=="00":
-    #     exp=exp[:4]+"28"
-    # print(exp)
     exp = format_date(exp)
     sql = 'select * from REF_LIB where gtin= %s limit 1' #등록 항목 확인 process
     data = execute_query(conn,sql,gtin)
-    # print(data)
     print(exp)
     conn.close()
     barcode = {'gtin':gtin,'lot': lot, 'exp': exp, 'ref': ref}
-    
-    # print(data)
     return jsonify({'info':data,'barcode':barcode})
 
+# 시약 코멘트 확인;index.html
 @app.route('/comment', methods=["POST"])
 def comment():
     conn = create_connection()
     id = request.form['id']
-    sql = 'select id,comment from in_reagent where id=%s'
+    sql = 'select id,comment,lot from in_reagent where id=%s'
     data=execute_query(conn,sql,id)
     conn.close()
     
     return jsonify({'result': data})
 
+# 시약 코멘트 저장; index.html
 @app.route('/comment_save', methods=["POST"])
 def comment_save():
     conn = create_connection()
@@ -212,43 +198,11 @@ def comment_save():
         sql = 'update in_reagent set comment = null where id=%s'
         execute_query(conn,sql,id)
     else:
-    
         sql = 'update in_reagent set comment = %s where id=%s'
         execute_query(conn,sql,(comment,id))
     conn.commit()
     conn.close()
     return jsonify({'msg': '입력완료'})
-
-# @app.route("/barcode", methods=["POST"])
-# def inreagent():
-#     conn = create_connection()
-#     barcode_receive = request.form['barcode_give']
-#     # type_receive = request.form['type_give']
-#     print(barcode_receive)
-#     ref, lot, exp, gtin = barcode2.analyze_barcode(barcode_receive) #barcode analysis
-#     print(ref, lot, exp, gtin)
-#     # print(exp[4:6])
-#     # if exp[4:6]=="00":
-#     #     exp=exp[:4]+"28"
-#     # print(exp)
-#     exp = format_date(exp)
-#     sql = 'select * from REF_LIB where gtin= %s limit 1' #등록 항목 확인 process
-#     data = execute_query(conn,sql,gtin)
-#     # print(data)
-#     print(exp)
-#     conn.close()
-#     if not data: # 라이브러리에 데이터가 없는 경우
-#         data={}
-#         data[0] = {'lot': lot, 'exp': exp, 'ref': ref}
-#         # print(data)
-#     else: # 라이브러리에 데이터 존재
-#         data[0]['lot']=lot
-#         data[0]['exp']=exp
-#         data[0]['ref']=ref
-#         # print(data)
-#     data[0]['gtin']=gtin
-#     # print(data)
-#     return jsonify(data)
 
 # 시약입고
 @app.route("/save", methods=["POST"])
@@ -281,8 +235,6 @@ def save():
             sql = 'insert into in_reagent (date, gtin, exp_date, lot, ref,in_id,comment) values (%s, %s, %s, %s, %s,%s,%s)'
             execute_query(conn,sql,(date_receive,gtin_receive,exp_receive,lot_receive,ref,username,comment))
         i += 1
-        # print(sql,(date_receive,gtin_receive,exp_receive,lot_receive,ref))
-        # execute_query(conn,sql,(date_receive,gtin_receive,exp_receive,lot_receive,ref,username,comment))
         conn.commit()
 
     sql = 'select * from REF_LIB where gtin = %s limit 1' #라이브러리에 데이터 유무 확인
@@ -307,16 +259,20 @@ def save_m():
     ea_receive =  int(request.form['ea_give'])
     username = request.form['username']
     comment = request.form['comment']
-    print(request)
-    # print("volume", volume_receive)
     print(exp_receive)
     i = 0
-    while i < ea_receive: #ea 만큼 해당 시약을 입고
-        sql = 'insert into in_reagent (date, gtin, exp_date, lot,in_id,comment) values (%s, %s, %s, %s,%s,%s)'
-        i += 1
-        # print(sql,(date_receive,gtin_receive,exp_receive,lot_receive,ref))
-        execute_query(conn,sql,(date_receive,gtin_receive,exp_receive,lot_receive,username,comment))
-        conn.commit()
+    if comment == '':
+        while i < ea_receive: #ea 만큼 해당 시약을 입고
+            sql = 'insert into in_reagent (date, gtin, exp_date, lot,in_id) values (%s, %s, %s, %s,%s)'
+            i += 1
+            execute_query(conn,sql,(date_receive,gtin_receive,exp_receive,lot_receive,username))
+            conn.commit()    
+    else:
+        while i < ea_receive: #ea 만큼 해당 시약을 입고
+            sql = 'insert into in_reagent (date, gtin, exp_date, lot,in_id,comment) values (%s, %s, %s, %s,%s,%s)'
+            i += 1
+            execute_query(conn,sql,(date_receive,gtin_receive,exp_receive,lot_receive,username,comment))
+            conn.commit()
     conn.close()
     return jsonify({'msg': '입력완료'})
 
@@ -381,55 +337,6 @@ def out_barcode():
         conn.commit()
         print("1-2")
 
-
-#     if total_ea == 1: #포장단위가 단품일 경우
-        
-
-#         print("1")
-
-#         if onboarding == onboard: #장착 최소한도보다 개봉 시약이 같을 경우
-#             sql = 'update in_reagent set close_date = %s, quantity= %s where gtin = %s  and out_date is not NULL and close_date is NULL order by date limit 1' #기존 오픈된 시약 중 오픈일 기입된 시약을 종료일 입력
-#             execute_query(conn,sql,(out_date,total_ea,gtin))
-#             conn.commit()
-#             sql = 'update in_reagent set out_date = %s, open_id = %s,quantity = 1 where gtin= %s and lot = %s and out_date is NULL order by date limit 1' #오픈되지 않은 시약을 한개 찾아 오픈일만 기입 process 1
-#             execute_query(conn,sql,(out_date, username, gtin, lot))
-#             conn.commit()
-#             print("1-1")
-#         else:
-#             sql = 'update in_reagent set out_date = %s, open_id = %s, qauntity= 1 where gtin= %s and lot = %s  and out_date is NULL order by date limit 1' #오픈되지 않은 시약을 한개 찾아 오픈일만 기입 process 1
-#             execute_query(conn,sql,(out_date, username, gtin, lot))
-#             conn.commit()
-#             print("1-2")
-#     else: # 단품이 아닐 경우
-# # out_date is not NULL and close_date is NULL and quantity < total_ea searching
-# # if data is not NULL; update add quantiy +1 process 1
-# # and search out_date is not NULL and close_date is NULL and quantity = total_ea -> close_date
-#         sql = 'select * from in_reagent ir where gtin = %s and quantity <  %s and out_date is not NULL limit 1'
-#         data = execute_query(conn,sql,(gtin,total_ea))
-#         print("2")
-        
-#         if not data:
-#             sql = 'update in_reagent set out_date = %s, open_id = %s, quantity = 1 where gtin = %s and lot = %s and quantity = 1 and out_date is NULL order by date limit 1' #오픈되지 않은 시약을 한개 찾아 오픈일만 기입 process 1
-#             execute_query(conn,sql,(out_date, username,gtin,lot))
-#             conn.commit()
-#             print("2-1")
-#         else:
-#             data=data[0]
-#             quantity = data['quantity']
-#             id = data['id']
-            
-#             print("2-2")
-#             if quantity == total_ea:
-#                 sql = 'UPDATE in_reagent set close_date = %s WHERE id= %s'
-#                 execute_query(conn,sql,(quantity,out_date,id))
-#                 conn.commit()
-#                 print("2-2-1")
-#             else:
-#                 quantity = quantity +1
-#                 sql = 'UPDATE in_reagent set quantity=%s WHERE id= %s'
-#                 execute_query(conn,sql,(quantity,id))
-#                 conn.commit()
-#                 print("2-2-2")
     conn.close()
     return jsonify({'msg': '입력 완료!'})
 
@@ -581,7 +488,7 @@ def instrument_select_in():
 
 #입고 기간 검색;index.html
 @app.route("/search", methods=["POST"])
-def search():
+def search1():
     conn = create_connection()
     start_receive = request.form['start_give']
     end_receive = request.form['end_give']

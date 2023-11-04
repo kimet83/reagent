@@ -5,7 +5,6 @@
   <meta charset="UTF-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
   <script src="/static/script.js"></script>
   <script src="/static/jquery-3.7.1.min.js"></script>
   <link href="/static/bootstrap-5.3.2/css/bootstrap.min.css" rel="stylesheet"
@@ -14,7 +13,7 @@
     integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
     crossorigin="anonymous"></script>
 
-    <link rel="icon" type="image/x-icon" href="/static.favicon.ico">
+  <link rel="icon" type="image/x-icon" href="/static.favicon.ico">
 
   <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" type="text/css" href="/static/styles.css">
@@ -38,7 +37,7 @@
         $("#out_date_manual").val(today);
         select();
 
-        search();
+        search1();
 
       })
     });
@@ -123,7 +122,7 @@
         inputbarcode.value = "";
         input.focus();
 
-        search();
+        search1();
       });
     }
 
@@ -194,7 +193,7 @@
           $("#reagent_search").append(temp_html);
         });
       });
-      search();
+      search1();
     };
     function reagent_select() {
       let reagent_select = document.getElementById("name_manual_search");
@@ -262,7 +261,7 @@
 
         $("#modal").empty()
 
-        search();
+        search1();
       });
 
     }
@@ -315,80 +314,91 @@
       select2();
     }
 
-    function search() {
-      let start = $("#start").val();
-      let end = $("#end").val();
-      // let instrument_search = $("#instrument_search").val();
+    function search1(page=1) {
+  // 입력 필드에서 직접 값 가져오기
+  let start = $("#start").val();
+  let end = $("#end").val();
+  let instrument_search = document.getElementById("instrument_search").value;
+  let code_search = document.getElementById("code_search").value;
+  let gtin = document.getElementById("reagent_search").value;
+
+  // FormData 생성
+  let formData = new FormData();
+  formData.append("start_give", start);
+  formData.append("end_give", end);
+  formData.append("instrument_give", instrument_search);
+  formData.append("code_give", code_search);
+  formData.append("gtin", gtin);
+
+  // 서버로 POST 요청 보내기
+  fetch('/out_search', { method: "POST", body: formData })
+    .then((res) => res.json())
+    .then((data) => {
+      $("#order-box").empty();
+      let rows = data['result'];
+      let itemsPerPage = 12;
+      let startIndex = (page - 1) * itemsPerPage;
+      let endIndex = startIndex + itemsPerPage;
+      let currentPageData = rows.slice(startIndex, endIndex);
+      console.log(rows);
+
+      currentPageData.forEach((c) => {
+        let id = c["id"];
+        let date = c["date"].substr(2);
+        let instrument = c["instrument"];
+        let name = c["name"];
+        let lot = c["lot"];
+        let exp = c["exp"].substr(2);
+        let ref = c["ref"];
+        let code = c["code"];
+        let outDate = c['out_date'].substr(2);
+        let closeDate = c['close_date'];
+        let openName = c['open_user'];
+        let comment = c['comment'];
+
+        let badgePrimary = (comment === null || comment.trim() === "") ? '' : '<span class="badge text-bg-primary">!</span>';
+
+        let temp_html = `
+          <tr>
+            <td>${date}</td>
+            <td>${outDate}</td>
+            <td>${closeDate ? closeDate.substr(2) : '-'}</td>
+            <td>${instrument}</td>
+            <td>${code}</td>
+            <td class="name" data-bs-toggle="modal" data-bs-target="#manualinput" onclick="comment_modal('${id}')">${name}${badgePrimary}</td>
+            <td>${lot}</td>
+            <td>${exp}</td>
+            <td>${openName}</td>
+            <td><button onclick="cancel_order('${id}')" class="btn btn-warning btn-sm">취소</button></tr>
+          </tr>`;
+        
+          $("#order-box").append(temp_html);
+      });
+      createPaginationControls(data['result'].length, itemsPerPage, page);
+      search2();
+    });
+}
+function createPaginationControls(totalItems, itemsPerPage, currentPage) {
+  let totalPages = Math.ceil(totalItems / itemsPerPage);
+  let paginationHtml = '<ul class="pagination">';
+
+  for (let i = 1; i <= totalPages; i++) {
+    if (i === currentPage) {
+      paginationHtml += `<li class="page-item active"><a class="page-link" href="#" onclick="search1(${i})">${i}</a></li>`;
+    } else {
+      paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="search1(${i})">${i}</a></li>`;
+    }
+  }
+
+  paginationHtml += '</ul>';
+  $("#pagination").html(paginationHtml);
+}
+
+    
+    function search2(page=1) {
       let instrument_search1 = document.getElementById("instrument_search").value;
       let code_search = document.getElementById("code_search").value;
-      // var instrument_search = document.querySelector('input[name="instrumnet_search"]:checked').value;
-      let gtin = document.getElementById("reagent_search").value;
-      let formData = new FormData();
-      formData.append("start_give", start);
-      formData.append("end_give", end);
-      formData.append("instrument_give", instrument_search1)
-      formData.append("code_give", code_search)
-      formData.append("gtin", gtin);
-      console.log(start, end, instrument_search1, code_search)
-
-      fetch('/out_search', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
-
-        $("#order-box").empty();
-
-        let rows = data['result']
-        console.log(rows)
-
-        rows.forEach((c) => {
-          let id = c["id"];
-          let date = c["date"].substr(2);
-
-          let instrument = c["instrument"]
-          let name = c["name"];
-          let lot = c["lot"];
-          let exp = c["exp"].substr(2);
-          let ref = c["ref"];
-          let code = c["code"];
-          let out_date = c['out_date'].substr(2);
-          let close_date = c['close_date']
-          let open_name = c['open_user'];
-
-          if (close_date == null) {
-            let temp_html = `          <tr>
-            <td>${date}</td><td>${out_date}</td><td>-</td><td>${instrument}</td><td>${code}</td>
-            <td>${name}</td>
-            <td>${lot}</td>
-            <td>${exp}</td>
-            <td>${open_name}</td>
-            
-            <td><button onclick="cancel_order('${id}')" class="btn btn-warning btn-sm">취소</button></tr>
-          </tr>`;
-            $("#order-box").append(temp_html);
-          }
-          else {
-            let close_date2 = close_date.substr(2);
-            let temp_html = `          <tr>
-            <td>${date}</td><td>${out_date}</td><td>${close_date2}</td><td>${instrument}</td><td>${code}</td>
-            <td>${name}</td>
-            <td>${lot}</td>
-            <td>${exp}</td>
-            <td>${open_name}</td>
-            
-            <td><button onclick="cancel_order('${id}')" class="btn btn-warning btn-sm">취소</button></tr>
-          </tr>`;
-            $("#order-box").append(temp_html);
-          }
-
-        });
-
-      });
-
-      search2()
-    }
-    function search2() {
-      var instrument_search1 = document.getElementById("instrument_search").value;
-      var code_search = document.getElementById("code_search").value;
-      // var instrument_search = document.querySelector('input[name="instrumnet_search"]:checked').value;
-
+      
       let formData = new FormData();
       formData.append("instrument_give", instrument_search1)
       formData.append("code_give", code_search)
@@ -398,8 +408,11 @@
         let rows = data['result']
         console.log(rows)
         $("#order-box2").empty()
-
-        rows.forEach((a) => {
+        let itemsPerPage = 10;
+      let startIndex = (page - 1) * itemsPerPage;
+      let endIndex = startIndex + itemsPerPage;
+      let currentPageData = rows.slice(startIndex, endIndex);
+      currentPageData.forEach((a) => {
           // let name = a["name"];
           // let part = a["part"];
           // let code = a["Code"];
@@ -415,6 +428,9 @@
           let id = a["id"]
           let open_user = a["open_user"]
           let remain = total_ea - quantity;
+          let comment = a['comment'];
+
+          let badgePrimary = (comment === null || comment.trim() === "") ? '' : '<span class="badge text-bg-primary">!</span>';
 
 
           let temp_html = `<tr>
@@ -422,7 +438,7 @@
             <td>${out_date}</td>
             <td>${instrument}</td>
             <td>${code}</td>
-            <td>${name}</td>
+            <td class="name" data-bs-toggle="modal" data-bs-target="#manualinput" onclick="comment_modal('${id}')">${name}${badgePrimary}</td>
             <td>${lot}</td>
             <td>${exp}</td>
             <td>${remain}/${total_ea}</td>
@@ -433,7 +449,92 @@
           </tr>`;
           $("#order-box2").append(temp_html);
         });
+        createPaginationControls2(data['result'].length, itemsPerPage, page);
       });
+    }
+    function createPaginationControls2(totalItems, itemsPerPage, currentPage) {
+  let totalPages = Math.ceil(totalItems / itemsPerPage);
+  let paginationHtml = '<ul class="pagination">';
+
+  for (let i = 1; i <= totalPages; i++) {
+    if (i === currentPage) {
+      paginationHtml += `<li class="page-item active"><a class="page-link" href="#" onclick="search2(${i})">${i}</a></li>`;
+    } else {
+      paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="search2(${i})">${i}</a></li>`;
+    }
+  }
+
+  paginationHtml += '</ul>';
+  $("#pagination2").html(paginationHtml);
+}
+
+    function comment_modal(id) {
+      // console.log(id)
+      let formData = new FormData();
+      formData.append("id", id);
+      fetch('/comment',{method: "POST", body: formData,}).then((res) => res.json()).then((data) => {
+        
+        comment = data['result'][0]['comment']
+        if (comment == null){
+          $("#modal").empty();
+        let temp_html = `
+        <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="manualinputLabel">시약 특이사항</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" >
+          
+          <div class="input-group input-group-sm mb-3">
+            <span class="input-group-text">비고</span>
+            <input id="comment_modal" type="text" class="form-control form-control-sm" value=""/>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="comment_save('${id}')">등록/수정</button>
+        </div>
+      </div>`
+      $("#modal").append(temp_html);
+        }
+        else {
+          $("#modal").empty();
+        let temp_html = `
+        <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="manualinputLabel">시약 특이사항</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" >
+          
+          <div class="input-group input-group-sm mb-3">
+            <span class="input-group-text">비고</span>
+            <input id="comment_modal" type="text" class="form-control form-control-sm" value="${comment}"/>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="comment_save('${id}')">등록/수정</button>
+        </div>
+      </div>`
+      $("#modal").append(temp_html);
+        }
+        
+        console.log(id)
+        
+      })
+    }
+
+    function comment_save(id) {
+      let comment = $("#comment_modal").val();
+      let formData = new FormData();
+      formData.append('id',id);
+      formData.append('comment',comment);
+      fetch('/comment_save',{method: "POST", body: formData,}).then((res) =>res.json()).then((data)=> {
+        $("#modal").empty();
+        search1()
+      })
+      
     }
 
     function add_order(id) {
@@ -448,7 +549,7 @@
 
       fetch('/add', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
 
-        search();
+        search1();
       });
     }
 
@@ -461,7 +562,7 @@
 
       fetch('/cancel', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
 
-        search();
+        search1();
       });
     }
 
@@ -562,7 +663,7 @@
 
         </select>
         <span class="input-group-text">시약명</span>
-        <select id="reagent_search" class="form-select" onchange="search()">
+        <select id="reagent_search" class="form-select" onchange="search1()">
           <option selected value="all">전체</option>
 
 
@@ -570,12 +671,17 @@
 
 
         <span class="input-group-text">기간</span>
-        <input id="start" type="date" class="form-control" onchange="search()" />
+        <input id="start" type="date" class="form-control" onchange="search1()" />
         <span class="input-group-text">~</span>
-        <input id="end" type="date" class="form-control" onchange="search()" />
-        <!-- <span><button onclick="search()" type="button" class="btn btn-warning mybtn">검색</button></span> -->
+        <input id="end" type="date" class="form-control" onchange="search1()" />
+        <!-- <span><button onclick="search1()" type="button" class="btn btn-warning mybtn">검색</button></span> -->
 
       </div>
+        <!-- <div class="input-group input-group-sm mb-3">
+          <span>
+            <type="button" class="btn btn-warning btn-sm" onclick="print_page()">인쇄</button>
+          </span>
+        </div> -->
 
     </div>
 
@@ -612,6 +718,7 @@
 
         </tbody>
       </table>
+      <div class="container"><span class="page" id="pagination"></span></div>
     </div>
     <div>
       <h4>개봉/사용중 시약</h4>
@@ -648,6 +755,7 @@
 
         </tbody>
       </table>
+      <div class="container"><span class="page" id="pagination2"></span></div>
     </div>
   </div>
 

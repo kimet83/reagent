@@ -8,6 +8,7 @@
 
   <script src="/static/script.js"></script>
   <script src="/static/jquery-3.7.1.min.js"></script>
+
   <link href="/static/bootstrap-5.3.2/css/bootstrap.min.css" rel="stylesheet"
     integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
   <script src="/static/bootstrap-5.3.2/js/bootstrap.bundle.min.js"
@@ -29,7 +30,7 @@
 
     $(document).ready(function () {
       select();
-      search();
+      search1();
     });
 
     function select() {
@@ -135,7 +136,7 @@
           $("#reagent_search").append(temp_html);
         });
       });
-      search();
+      search1();
     };
 
     function save_order() {
@@ -326,7 +327,7 @@
 
       fetch('/edit', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
 
-        search();
+        search1();
       });
       $("#detail").empty()
       let temp_html = `<div class="detail">
@@ -537,7 +538,7 @@
     }
 
 
-    function search() {
+    function search1() {
       let start = $("#start").val();
       let end = $("#end").val();
       // let instrument_search = $("#instrument_search").val();
@@ -596,7 +597,7 @@
 
       fetch('/del_reg', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
 
-        search();
+        search1();
       });
       $("#detail").empty()
       let temp_html = `<div class="detail">
@@ -883,7 +884,7 @@
 
         </select>
         <span class="input-group-text">시약명</span>
-        <select id="reagent_search" class="form-select" onchange="search()">
+        <select id="reagent_search" class="form-select" onchange="search1()">
           <option selected value="all">전체</option>
         </select>
       </div>
