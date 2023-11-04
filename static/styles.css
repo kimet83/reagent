@@ -1,0 +1,55 @@
+* {
+    font-family: 'Noto Sans KR', sans-serif;
+}
+
+.radio-buttons {
+    display: none;
+}
+
+body {
+    background-color: lightgray;
+}
+
+h1 {
+    font-weight: bold;
+}
+td.name:hover {
+    background-color: lightgray; /* 마우스를 올릴 때 음영 변경 */
+    cursor: pointer;
+}
+.order {
+    width: 900px;
+    margin: 60px auto 0px auto;
+    padding-bottom: 30px;
+    font-size: 13px;
+}
+
+.mybtn {
+    width: 100%;
+}
+
+
+.order>table {
+    margin: 40px 0;
+    font-size: 18px;
+}
+
+option {
+    color: black;
+}
+
+.detail {
+    background-color: wheat;
+    padding: 5px;
+
+}
+.detail2 {
+    background-color: aquamarine;
+    padding: 5px;
+}
+
+.inreagent {
+    background-color: white;
+    padding: 5px;
+
+}

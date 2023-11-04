@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <script src="/static/script.js"></script>
+  <script src="/static/jquery-3.7.1.min.js"></script>
+  <link href="/static/bootstrap-5.3.2/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+  <script src="/static/bootstrap-5.3.2/js/bootstrap.bundle.min.js"
+    integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+    crossorigin="anonymous"></script>
+
+    <link rel="icon" type="image/x-icon" href="/static.favicon.ico">
+
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" type="text/css" href="/static/styles.css">
+
+  <title>시약 현황</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR&display=swap');
+  </style>
+
+
+  <script>
+    // 날짜 스크립트
+    $(document).ready(function () {
+      // 기본날짜
+      fetch('/current_date').then((res) => res.json()).then((data) => {
+        console.log(data)
+        let start = data["start"];
+        let today = data['end'];
+        // $("#date").val(today);
+        $("#start").val(start);
+        $("#end").val(today);
+        // $("#out_date_manual").val(today);
+        select();
+
+        instrument_select();
+
+      })
+    });
+    // 장비명 스크립트
+    function select() {
+      fetch('/select').then((res) => res.json()).then((data) => {
+        let rows = data['instrument']
+        console.log(rows)
+        let rows2 = data['user']
+
+        rows.forEach((b) => {
+          let instrument1 = b["instrument"]
+          // let instrument1 = b[0]
+          let temp_html = `<option value="${instrument1}" >${instrument1}</option>`;
+          $("#instrument").append(temp_html);
+          $("#instrument_search").append(temp_html);
+          $("#instrument_manual_search").append(temp_html);
+        })
+        $("#user").empty()
+        let temp_html = `<option selected value="{{ user_info['username'] }}">{{ user_info['name'] }}({{ user_info['username'] }})</option>`
+        $("#user").append(temp_html)
+        rows2.forEach((b) => {
+          let username = b["username"]
+          let name = b["name"]
+          // let instrument1 = b[0]
+          let temp_html = `<option value="${username}" >${name}(${username})</option>`;
+          $("#user").append(temp_html);
+
+        });
+      });
+    }
+
+
+    function search() {
+      let start = $("#start").val();
+      let end = $("#end").val();
+      // let instrument_search = $("#instrument_search").val();
+      let instrument_search1 = document.getElementById("instrument_search").value;
+      let code_search = document.getElementById("code_search").value;
+      let reagent_search = document.getElementById("reagent_search").value;
+      // var instrument_search = document.querySelector('input[name="instrumnet_search"]:checked').value;
+
+      let formData = new FormData();
+      formData.append("start_give", start);
+      formData.append("end_give", end);
+      formData.append("instrument_give", instrument_search1)
+      formData.append("code_give", code_search)
+      formData.append("gtin", reagent_search)
+      console.log(start, end, instrument_search1, code_search)
+
+      fetch('/total_count', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+
+        $("#order-box").empty();
+
+        let rows = data['result']
+        console.log(rows)
+
+        rows.forEach((c) => {
+          let gtin = c["gtin"];
+          let date = c["date"].substr(2);
+
+          let instrument = c["instrument"]
+          let name = c["name"];
+          let lot = c["lot"];
+          let exp = c["exp"].substr(2);
+          let ea = c["ea"];
+          let code = c["code"];
+          let inventory = c['inventory']
+          let used = c['used']
+
+          let temp_html = `          <tr>
+            <td>${instrument}</td>
+            <td>${code}</td>
+            <td>${name}</td>
+            <td>${lot}</td>
+            <td>${exp}</td>
+            <td>${ea}</td>
+            <td>${used}</td>
+            <td>${inventory}</td>
+          
+          </tr>`;
+          $("#order-box").append(temp_html);
+
+
+        });
+
+      });
+
+      search2()
+    }
+    function instrument_select() {
+      let instrument_select = document.getElementById("instrument_search");
+      if (instrument_select.value === "장비명") {
+        // alert("장비를 선택해주세요");
+        instrument_select.focus();
+        return false;
+      }
+      let selectedValue = instrument_select.value;
+      let formData = new FormData();
+      let code = $("#code_search").val();
+      formData.append("instrument_select", selectedValue);
+      formData.append("code_manual_search", code);
+      console.log(selectedValue)
+
+      fetch('/instrument_select', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+
+        $("#reagent_search").empty();
+        temp_html = `<option selected value="all">전체</option>`
+        $("#reagent_search").append(temp_html);
+
+
+        let rows = data['result']
+        console.log(rows)
+
+        rows.forEach((c) => {
+          let name = c["name"]
+          let gtin = c["gtin"]
+          let temp_html = `<option value="${gtin}" >${name}</option>`;
+          $("#reagent_search").append(temp_html);
+        });
+      });
+      search();
+    };
+
+    function search2() {
+      var instrument_search1 = document.getElementById("instrument_search").value;
+      var code_search = document.getElementById("code_search").value;
+      // var instrument_search = document.querySelector('input[name="instrumnet_search"]:checked').value;
+
+      let formData = new FormData();
+      formData.append("instrument_give", instrument_search1)
+      formData.append("code_give", code_search)
+      console.log(instrument_search1, code_search)
+      fetch('/search2', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+
+        let rows = data['result']
+        console.log(rows)
+        $("#order-box2").empty()
+
+        rows.forEach((a) => {
+          // let name = a["name"];
+          // let part = a["part"];
+          // let code = a["Code"];
+          let date = a["date"].substr(2);
+          let out_date = a["out_date"].substr(2);
+          let instrument = a["instrument"]
+          let code = a["code"]
+          let name = a["name"]
+          let lot = a["lot"]
+          let exp = a["exp"].substr(2);
+          let quantity = a["quantity"]
+          let total_ea = a["total_ea"]
+          let id = a["id"]
+          let open_user = a["open_user"]
+          let remain = total_ea - quantity;
+
+
+          let temp_html = `<tr>
+            <td>${date}</td>
+            <td>${out_date}</td>
+            <td>${instrument}</td>
+            <td>${code}</td>
+            <td>${name}</td>
+            <td>${lot}</td>
+            <td>${exp}</td>
+            <td>${remain}/${total_ea}</td>
+            <td>${open_user}</td>
+            
+          </tr>`;
+          $("#order-box2").append(temp_html);
+        });
+      });
+    }
+
+
+    function enterkey() {
+      if (window.event.keyCode == 13) {
+
+        // 엔터키가 눌렸을 때 실행할 내용
+        out_order();
+      }
+    }
+    function enterkey2() {
+      if (window.event.keyCode == 13) {
+
+        // 엔터키가 눌렸을 때 실행할 내용
+        save();
+      }
+    }
+  </script>
+
+</head>
+
+<body>
+  <div class="mask"></div>
+  <div class="order">
+    <!-- navigation -->
+    <div>
+      <nav class="navbar navbar-expand-lg bg-light">
+        <div class="container-fluid">
+          <a class="navbar-brand" href="#">시약현황통계</a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+            aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarNav" width="70%">
+            <ul class="navbar-nav">
+              <li class="nav-item">
+                <a class="nav-link" href="#" onclick="home()">입고</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#" onclick="out_index()">출고</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link active" aria-current="page" href="#" onclick="total()">현황</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#" onclick="ref_reg()">등록</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <form class="container-fluid">
+          <div class="input-group">
+            <span class="input-group-text" id="basic-addon1">사용자</span>
+            <select class="form-select form-select-sm" aria-label=".form-select-sm example" id="user"
+              onchange="change()">
+              <option selected value="default">{{ user_info['name'] }}</option>
+            </select>
+            <span>
+              <type="button" class="btn btn-warning btn" onclick="logout()">Logout</button>
+            </span>
+          </div>
+        </form>
+      </nav>
+    </div>
+    <div class="order-info">
+      <div class="input-group input-group-sm mb-3">
+        <span class="input-group-text">장비명</span>
+        <select id="instrument_search" class="form-select" onchange="instrument_select()">
+          <option selected value="all">전체</option>
+        </select>
+        <span class="input-group-text">분류</span>
+        <select id="code_search" class="form-select" onchange="instrument_select()">
+          <option selected value="all">전체</option>
+          <option value="시약">시약</option>
+          <option value="Cal/QC">Cal/QC</option>
+          <option value="보조시약">보조시약</option>
+        </select>
+      </div>
+      <div class="input-group input-group-sm mb-3">
+        <span class="input-group-text">시약명</span>
+        <select id="reagent_search" class="form-select" onchange="search()">
+          <option selected value="all">전체</option>
+        </select>
+        <span class="input-group-text">기간</span>
+        <input id="start" type="date" class="form-control" onchange="search()" />
+        <span class="input-group-text">~</span>
+        <input id="end" type="date" class="form-control" onchange="search()" />
+      </div>
+    </div>
+
+
+    <div>
+      <h4>시약 재고 현황</h4>
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">장비명</th>
+            <th scope="col">분류</th>
+            <th scope="col">시약명</th>
+            <th scope="col">Lot</th>
+            <th scope="col">유효기간</th>
+            <th scope="col">입고</th>
+            <th scope="col">사용</th>
+            <th scope="col">재고</th>
+          </tr>
+        </thead>
+        <tbody id="order-box" class="align-middle">
+          <!-- <tr>
+            <td>${instrument}</td><td>${code}</td><td>${name}</td><td>${lot}</td<td>${exp}</td><td>${ea}</td>
+            <td>${inventory}</td>
+          
+          </tr>` -->
+
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <h4>개봉/사용중 시약</h4>
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">입고일</th>
+            <th scope="col">시작일</th>
+            <th scope="col">장비명</th>
+            <th scope="col">분류</th>
+            <th scope="col">시약명</th>
+            <th scope="col">lot.No</th>
+            <th scope="col">유효기간</th>
+            <th scope="col">잔량</th>
+            <th scope="col">출고자</th>
+
+          </tr>
+        </thead>
+        <tbody id="order-box2" class="align-middle">
+          <!-- <tr>
+            <td>23-03-03</td>
+            <td>23-03-03</td>
+            <td>t511</td>
+            <td>Cal/QC</td>
+            <td>reagent 123123123</td>
+            <td>123456</td>
+            <td>230323</td>
+            <td>2/10</td>
+            <td><button onclick="add_order()" class="btn btn-warning btn-sm">사용</button></td>
+
+            <td><button onclick="cancel_order()" class="btn btn-warning btn-sm">취소</button></td>
+          </tr> -->
+
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+
+
+</body>

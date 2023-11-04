@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <script src="/static/script.js"></script>
+  <script src="/static/jquery-3.7.1.min.js"></script>
+  <link href="/static/bootstrap-5.3.2/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+  <script src="/static/bootstrap-5.3.2/js/bootstrap.bundle.min.js"
+    integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+    crossorigin="anonymous"></script>
+
+    <link rel="icon" type="image/x-icon" href="/static.favicon.ico">
+
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" type="text/css" href="/static/styles.css">
+
+  <title>시약 출고 관리</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR&display=swap');
+  </style>
+
+  <script>
+    // 날짜 스크립트
+    $(document).ready(function () {
+      // 기본날짜
+      fetch('/current_date').then((res) => res.json()).then((data) => {
+        console.log(data)
+        let start = data["start"];
+        let today = data['end'];
+        $("#date").val(today);
+        $("#start").val(today);
+        $("#end").val(today);
+        $("#out_date_manual").val(today);
+        select();
+
+        search();
+
+      })
+    });
+    // 장비명 스크립트
+    function select() {
+      fetch('/select').then((res) => res.json()).then((data) => {
+        let rows = data['instrument']
+        console.log(rows)
+        let rows2 = data['user']
+
+        rows.forEach((b) => {
+          let instrument1 = b["instrument"]
+          // let instrument1 = b[0]
+          let temp_html = `<option value="${instrument1}" >${instrument1}</option>`;
+          $("#instrument").append(temp_html);
+          $("#instrument_search").append(temp_html);
+          $("#instrument_manual_search").append(temp_html);
+        })
+        $("#user").empty()
+        let temp_html = `<option selected value="{{ user_info['username'] }}">{{ user_info['name'] }}({{ user_info['username'] }})</option>`
+        $("#user").append(temp_html)
+        rows2.forEach((b) => {
+          let username = b["username"]
+          let name = b["name"]
+          // let instrument1 = b[0]
+          let temp_html = `<option value="${username}" >${name}(${username})</option>`;
+          $("#user").append(temp_html);
+
+        });
+      });
+    }
+
+    function select2() {
+      fetch('/select').then((res) => res.json()).then((data) => {
+        let rows2 = data['instrument']
+
+        rows2.forEach((b) => {
+          let instrument1 = b["instrument"]
+          let temp_html = `<option value="${instrument1}" >${instrument1}</option>`;
+          $("#instrument_manual_search").append(temp_html);
+        });
+      });
+      fetch('/current_date').then((res) => res.json()).then((data) => {
+        console.log(data)
+        let start = data["start"];
+        let today = data['end'];
+        $("#out_date_manual").val(today);
+      })
+    }
+
+    //바코드 출고
+    function out_order() {
+      var input = document.getElementById("barcode");
+      if (input.value === "") {
+        alert("바코드를 입력해주세요.");
+        input.focus();
+        return false;
+      }
+      // var input2 = document.getElementById("type");
+      // if (input2.value === "default") {
+      //   alert("바코드 종류를 입력해주세요.");
+      //   input2.focus();
+      //   return false;
+      // }
+      input.focus();
+      let date = $("#date").val();
+      let barcode = $("#barcode").val();
+      let post_user = $("#user").val();
+      // let type = $("#type").val();
+      sessionStorage.setItem('date', date)
+
+      let formData = new FormData();
+      formData.append("date_give", date);
+      formData.append("barcode_give", barcode);
+      formData.append("username", post_user);
+      // formData.append("type_give", type);
+
+      fetch('/out_barcode', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+        console.log(data);
+
+        var inputbarcode = document.getElementById("barcode");
+        inputbarcode.value = "";
+        input.focus();
+
+        search();
+      });
+    }
+
+    // 수동출고 장비선택 및 분류 선택
+    function instrument_select() {
+      let instrument_select = document.getElementById("instrument_manual_search");
+      if (instrument_select.value === "장비명") {
+        // alert("장비를 선택해주세요");
+        instrument_select.focus();
+        return false;
+      }
+      let selectedValue = instrument_select.value;
+      let formData = new FormData();
+      let code = $("#code_manual_search").val();
+      formData.append("instrument_select", selectedValue);
+      formData.append("code_manual_search", code);
+      console.log(selectedValue)
+
+      fetch('/instrument_select', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+
+        $("#name_manual_search").empty();
+        temp_html = `<option selected value="">시약명</option>`
+        $("#name_manual_search").append(temp_html);
+        $("#lot_manual_search").empty();
+        temp_html = `<option selected value="">Lot</option>`
+        $("#lot_manual_search").append(temp_html);
+
+        let rows = data['result']
+        console.log(rows)
+
+        rows.forEach((c) => {
+          let name = c["name"]
+          let gtin = c["gtin"]
+          let temp_html = `<option value="${gtin}" >${name}</option>`;
+          $("#name_manual_search").append(temp_html);
+        });
+      });
+    };
+
+    function instrument_select2() {
+      let instrument_select = document.getElementById("instrument_search");
+      if (instrument_select.value === "장비명") {
+        // alert("장비를 선택해주세요");
+        instrument_select.focus();
+        return false;
+      }
+      let selectedValue = instrument_select.value;
+      let formData = new FormData();
+      let code = $("#code_search").val();
+      formData.append("instrument_select", selectedValue);
+      formData.append("code_manual_search", code);
+      console.log(selectedValue)
+
+      fetch('/instrument_select', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+
+        $("#reagent_search").empty();
+        temp_html = `<option selected value="all">전체</option>`
+        $("#reagent_search").append(temp_html);
+
+
+        let rows = data['result']
+        console.log(rows)
+
+        rows.forEach((c) => {
+          let name = c["name"]
+          let gtin = c["gtin"]
+          let temp_html = `<option value="${gtin}" >${name}</option>`;
+          $("#reagent_search").append(temp_html);
+        });
+      });
+      search();
+    };
+    function reagent_select() {
+      let reagent_select = document.getElementById("name_manual_search");
+      if (reagent_select.value === "") {
+        // alert("시약을 선택해주세요");
+        reagent_select.focus();
+        return false;
+      }
+      var selectedValue = reagent_select.value;
+      let formData = new FormData();
+      let instrument = $("#instrument_manual_search").val();
+      formData.append("gtin", selectedValue);
+      formData.append("instrument_select", instrument);
+
+      console.log(selectedValue)
+
+      fetch('/reagent_select', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+
+        $("#lot_manual_search").empty();
+        temp_html = `<option selected value="">LOT</option>`
+        $("#lot").append(temp_html);
+
+        let names = data['result']
+        let name = names[0].name;
+        let rows = data['result']
+
+        rows.forEach((c) => {
+          let lot = c["lot"]
+          let temp_html = `<option value="${lot}" >${lot}</option>`;
+          $("#lot_manual_search").append(temp_html);
+        });
+      });
+    };
+
+    function manual_save() {
+      var lot = document.getElementById("lot_manual_search");
+      if (lot.value === "") {
+        alert("Lot No.를 입력해 주세요.");
+        lot.focus();
+        return false;
+      }
+      var gtin = document.getElementById("name_manual_search");
+      var out_date = document.getElementById("out_date_manual");
+      if (gtin.value === "") {
+        alert("시약을 선택해주세요.");
+        gtin.focus();
+        return false;
+      }
+      let lot2 = $("#lot_manual_search").val()
+      let gtin2 = $("#name_manual_search").val()
+      let out_date2 = $("#out_date_manual").val()
+      let post_user = $("#user").val();
+      let barcode = "0"
+
+
+      let formData = new FormData();
+      formData.append("date_give", out_date2);
+      formData.append("gtin", gtin2);
+      formData.append("lot", lot2);
+      formData.append("username", post_user);
+      formData.append("barcode_give", barcode);
+      console.log(gtin2, out_date2, lot2)
+
+      fetch('/out_barcode', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+
+        $("#modal").empty()
+
+        search();
+      });
+
+    }
+    function manual() {
+      $("#modal").empty();
+      temp_html = `<div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="manualinputLabel">수기 출고</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id='manual_form'>
+          <div class="input-group input-group-sm mb-3">
+            <span class="input-group-text">장비명</span>
+
+            <select id="instrument_manual_search" class="form-select" onchange="instrument_select()">
+              <option selected>장비명</option>
+
+            </select>
+            <span class="input-group-text">분류</span>
+
+            <select id="code_manual_search" class="form-select" onchange="instrument_select()">
+              <option selected value="all">전체</option>
+              <option value="시약">시약</option>
+              <option value="Cal/QC">Cal/QC</option>
+              <option value="보조시약">보조시약</option>
+            </select>
+          </div>
+
+          <div class="input-group input-group-sm mb-3">
+            <span class="input-group-text">시약명</span>
+            <select id="name_manual_search" class="form-select" onchange="reagent_select()">
+              <option selected value="">시약명</option>
+            </select>
+          </div>
+          <div class="input-group input-group-sm mb-3">
+            <span class="input-group-text">Lot</span>
+
+            <select id="lot_manual_search" class="form-select">
+              <option selected value="">Lot</option>
+            </select>
+            <span class="input-group-text">출고일</span>
+            <input id="out_date_manual" type="date" class="form-control form-control-sm"  />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="manual_save()">등록/수정</button>
+        </div>`
+      $("#modal").append(temp_html);
+      select2();
+    }
+
+    function search() {
+      let start = $("#start").val();
+      let end = $("#end").val();
+      // let instrument_search = $("#instrument_search").val();
+      let instrument_search1 = document.getElementById("instrument_search").value;
+      let code_search = document.getElementById("code_search").value;
+      // var instrument_search = document.querySelector('input[name="instrumnet_search"]:checked').value;
+      let gtin = document.getElementById("reagent_search").value;
+      let formData = new FormData();
+      formData.append("start_give", start);
+      formData.append("end_give", end);
+      formData.append("instrument_give", instrument_search1)
+      formData.append("code_give", code_search)
+      formData.append("gtin", gtin);
+      console.log(start, end, instrument_search1, code_search)
+
+      fetch('/out_search', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+
+        $("#order-box").empty();
+
+        let rows = data['result']
+        console.log(rows)
+
+        rows.forEach((c) => {
+          let id = c["id"];
+          let date = c["date"].substr(2);
+
+          let instrument = c["instrument"]
+          let name = c["name"];
+          let lot = c["lot"];
+          let exp = c["exp"].substr(2);
+          let ref = c["ref"];
+          let code = c["code"];
+          let out_date = c['out_date'].substr(2);
+          let close_date = c['close_date']
+          let open_name = c['open_user'];
+
+          if (close_date == null) {
+            let temp_html = `          <tr>
+            <td>${date}</td><td>${out_date}</td><td>-</td><td>${instrument}</td><td>${code}</td>
+            <td>${name}</td>
+            <td>${lot}</td>
+            <td>${exp}</td>
+            <td>${open_name}</td>
+            
+            <td><button onclick="cancel_order('${id}')" class="btn btn-warning btn-sm">취소</button></tr>
+          </tr>`;
+            $("#order-box").append(temp_html);
+          }
+          else {
+            let close_date2 = close_date.substr(2);
+            let temp_html = `          <tr>
+            <td>${date}</td><td>${out_date}</td><td>${close_date2}</td><td>${instrument}</td><td>${code}</td>
+            <td>${name}</td>
+            <td>${lot}</td>
+            <td>${exp}</td>
+            <td>${open_name}</td>
+            
+            <td><button onclick="cancel_order('${id}')" class="btn btn-warning btn-sm">취소</button></tr>
+          </tr>`;
+            $("#order-box").append(temp_html);
+          }
+
+        });
+
+      });
+
+      search2()
+    }
+    function search2() {
+      var instrument_search1 = document.getElementById("instrument_search").value;
+      var code_search = document.getElementById("code_search").value;
+      // var instrument_search = document.querySelector('input[name="instrumnet_search"]:checked').value;
+
+      let formData = new FormData();
+      formData.append("instrument_give", instrument_search1)
+      formData.append("code_give", code_search)
+      console.log(instrument_search1, code_search)
+      fetch('/search2', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+
+        let rows = data['result']
+        console.log(rows)
+        $("#order-box2").empty()
+
+        rows.forEach((a) => {
+          // let name = a["name"];
+          // let part = a["part"];
+          // let code = a["Code"];
+          let date = a["date"].substr(2);
+          let out_date = a["out_date"].substr(2);
+          let instrument = a["instrument"]
+          let code = a["code"]
+          let name = a["name"]
+          let lot = a["lot"]
+          let exp = a["exp"].substr(2);
+          let quantity = a["quantity"]
+          let total_ea = a["total_ea"]
+          let id = a["id"]
+          let open_user = a["open_user"]
+          let remain = total_ea - quantity;
+
+
+          let temp_html = `<tr>
+            <td>${date}</td>
+            <td>${out_date}</td>
+            <td>${instrument}</td>
+            <td>${code}</td>
+            <td>${name}</td>
+            <td>${lot}</td>
+            <td>${exp}</td>
+            <td>${remain}/${total_ea}</td>
+            <td>${open_user}</td>
+            <td><button onclick="add_order('${id}')" class="btn btn-warning btn-sm">사용</button></td>
+
+            <td><button onclick="cancel_order('${id}')" class="btn btn-warning btn-sm">취소</button></td>
+          </tr>`;
+          $("#order-box2").append(temp_html);
+        });
+      });
+    }
+
+    function add_order(id) {
+      let out_date = $("#date").val();
+
+
+
+      let formData = new FormData();
+      formData.append("id", id);
+      formData.append("out_date", out_date)
+      console.log(id, out_date)
+
+      fetch('/add', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+
+        search();
+      });
+    }
+
+    function cancel_order(id) {
+
+
+      console.log(id)
+      let formData = new FormData();
+      formData.append("id", id);
+
+      fetch('/cancel', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+
+        search();
+      });
+    }
+
+
+
+    function enterkey() {
+      if (window.event.keyCode == 13) {
+
+        // 엔터키가 눌렸을 때 실행할 내용
+        out_order();
+      }
+    }
+
+
+  </script>
+
+</head>
+
+<body>
+  <div class="mask"></div>
+  <div class="order">
+    <!-- navigation -->
+    <div>
+      <nav class="navbar navbar-expand-lg bg-light">
+        <div class="container-fluid">
+          <a class="navbar-brand" href="#">시약출고관리</a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+            aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarNav" width="70%">
+            <ul class="navbar-nav">
+              <li class="nav-item">
+                <a class="nav-link" href="#" onclick="home()">입고</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link active" aria-current="page" href="#" onclick="out_index()">출고</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#" onclick="total()">현황</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#" onclick="ref_reg()">등록</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <form class="container-fluid">
+          <div class="input-group">
+            <span class="input-group-text" id="basic-addon1">사용자</span>
+            <select class="form-select form-select-sm" aria-label=".form-select-sm example" id="user"
+              onchange="change()">
+              <option selected value="default">{{ user_info['name'] }}</option>
+            </select>
+            <span>
+              <type="button" class="btn btn-warning btn" onclick="logout()">Logout</button>
+            </span>
+          </div>
+        </form>
+      </nav>
+    </div>
+    <div class="order-info">
+      <div class="input-group input-group-sm mb-3">
+        <span class="input-group-text">출고일</span>
+        <input id="date" type="date" class="form-control" />
+
+        <span class="input-group-text">바코드</span>
+        <input id="barcode" type="text" class="form-control form-control-sm" onkeyup="enterkey();" autofocus />
+        <span>
+          <type="button" class="btn btn-warning btn-sm" onclick="out_order()">입력</button>
+        </span>
+        <span>
+          <type='button' class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#manualinput"
+            onclick="manual()">
+            수기출고</button>
+        </span>
+
+      </div>
+
+
+    </div>
+    <P></P>
+    <div class="order-info">
+      <div class="input-group input-group-sm mb-3">
+        <span class="input-group-text">장비명</span>
+
+        <select id="instrument_search" class="form-select" onchange="instrument_select2()">
+          <option selected value="all">전체</option>
+
+        </select>
+        <span class="input-group-text">분류</span>
+
+        <select id="code_search" class="form-select" onchange="instrument_select2()">
+          <option selected value="all">전체</option>
+          <option value="시약">시약</option>
+          <option value="Cal/QC">Cal/QC</option>
+          <option value="보조시약">보조시약</option>
+
+        </select>
+        <span class="input-group-text">시약명</span>
+        <select id="reagent_search" class="form-select" onchange="search()">
+          <option selected value="all">전체</option>
+
+
+        </select>
+
+
+        <span class="input-group-text">기간</span>
+        <input id="start" type="date" class="form-control" onchange="search()" />
+        <span class="input-group-text">~</span>
+        <input id="end" type="date" class="form-control" onchange="search()" />
+        <!-- <span><button onclick="search()" type="button" class="btn btn-warning mybtn">검색</button></span> -->
+
+      </div>
+
+    </div>
+
+
+    <div>
+      <h4>출고/사용된 시약</h4>
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">입고일</th>
+            <th scope="col">시작일</th>
+            <th scope="col">종료일</th>
+            <th scope="col">장비명</th>
+            <th scope="col">분류</th>
+            <th scope="col">시약명</th>
+            <th scope="col">lot.No</th>
+            <th scope="col">유효기간</th>
+            <th scope="col">출고자</th>
+            <th scope="col">취소</th>
+          </tr>
+        </thead>
+        <tbody id="order-box" class="align-middle">
+          <!-- <tr>
+            <td>23-03-03</td>
+            <td>23-04-30</td>
+            <td>c702</td>
+            <td>시약</td>
+            <td>AST/ALT asdfasdfas</td>
+            <td>123456</td>
+            <td>23-05-23</td>
+
+            <td><button onclick="del_order()" class="btn btn-warning btn-sm">취소</button></td>
+          </tr> -->
+
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <h4>개봉/사용중 시약</h4>
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">입고일</th>
+            <th scope="col">시작일</th>
+            <th scope="col">장비명</th>
+            <th scope="col">분류</th>
+            <th scope="col">시약명</th>
+            <th scope="col">lot.No</th>
+            <th scope="col">유효기간</th>
+            <th scope="col">잔량</th>
+            <th scope="col">출고자</th>
+            <th scope="col">사용</th>
+            <th scope="col">취소</th>
+          </tr>
+        </thead>
+        <tbody id="order-box2" class="align-middle">
+          <!-- <tr>
+            <td>23-03-03</td>
+            <td>23-03-03</td>
+            <td>t511</td>
+            <td>Cal/QC</td>
+            <td>reagent 123123123</td>
+            <td>123456</td>
+            <td>230323</td>
+            <td>2/10</td>
+            <td><button onclick="add_order()" class="btn btn-warning btn-sm">사용</button></td>
+
+            <td><button onclick="cancel_order()" class="btn btn-warning btn-sm">취소</button></td>
+          </tr> -->
+
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal fade" id="manualinput" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+    aria-labelledby="manualinputLabel" aria-hidden="true">
+    <div class="modal-dialog" id="modal">
+      <!-- <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="manualinputLabel">수기 출고</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id='manual_form'>
+          <div class="input-group input-group-sm mb-3">
+            <span class="input-group-text">장비명</span>
+
+            <select id="instrument_manual_search" class="form-select" onchange="instrument_select()">
+              <option selected>장비명</option>
+
+            </select>
+            <span class="input-group-text">분류</span>
+
+            <select id="code_manual_search" class="form-select" onchange="instrument_select()">
+              <option selected value="all">전체</option>
+              <option value="시약">시약</option>
+              <option value="Cal/QC">Cal/QC</option>
+              <option value="보조시약">보조시약</option>
+            </select>
+          </div>
+
+          <div class="input-group input-group-sm mb-3">
+            <span class="input-group-text">시약명</span>
+            <select id="name_manual_search" class="form-select" onchange="reagent_select()">
+              <option selected value="">시약명</option>
+            </select>
+          </div>
+          <div class="input-group input-group-sm mb-3">
+            <span class="input-group-text">Lot</span>
+
+            <select id="lot_manual_search" class="form-select">
+              <option selected value="">Lot</option>
+            </select>
+            <span class="input-group-text">출고일</span>
+            <input id="out_date_manual" type="date" class="form-control form-control-sm"  />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="manual_save()">등록/수정</button>
+        </div> -->
+    </div>
+  </div>
+  </div>
+</body>

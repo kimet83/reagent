@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <script src="/static/script.js"></script>
+  <script src="/static/jquery-3.7.1.min.js"></script>
+  <link href="/static/bootstrap-5.3.2/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+  <script src="/static/bootstrap-5.3.2/js/bootstrap.bundle.min.js"
+    integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+    crossorigin="anonymous"></script>
+
+    <link rel="icon" type="image/x-icon" href="/static.favicon.ico">
+
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" type="text/css" href="/static/styles.css">
+
+
+  <title>시약 등록 관리</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR&display=swap');
+  </style>
+
+  <script>
+
+    $(document).ready(function () {
+      select();
+      search();
+    });
+
+    function select() {
+      fetch('/select').then((res) => res.json()).then((data) => {
+        let rows = data['instrument']
+        console.log(rows)
+        let rows2 = data['user']
+
+        rows.forEach((b) => {
+          let instrument1 = b["instrument"]
+          // let instrument1 = b[0]
+          let temp_html = `<option value="${instrument1}" >${instrument1}</option>`;
+          $("#instrument").append(temp_html);
+          $("#instrument_search").append(temp_html);
+
+        })
+        $("#user").empty()
+        let temp_html = `<option selected value="{{ user_info['username'] }}">{{ user_info['name'] }}({{ user_info['username'] }})</option>`
+        $("#user").append(temp_html)
+        rows2.forEach((b) => {
+          let username = b["username"]
+          let name = b["name"]
+          // let instrument1 = b[0]
+          let temp_html = `<option value="${username}" >${name}(${username})</option>`;
+          $("#user").append(temp_html);
+
+        });
+      });
+    }
+    function select2() {
+      fetch('/select').then((res) => res.json()).then((data) => {
+        let rows2 = data['instrument']
+
+        rows2.forEach((b) => {
+          let instrument1 = b["instrument"]
+          let temp_html = `<option value="${instrument1}" >${instrument1}</option>`;
+          $("#instrument").append(temp_html);
+        });
+      });
+
+    }
+
+    function instrument_select() {
+      let instrument_select = document.getElementById("instrument_manual_search");
+      if (instrument_select.value === "장비명") {
+        // alert("장비를 선택해주세요");
+        instrument_select.focus();
+        return false;
+      }
+      let selectedValue = instrument_select.value;
+      let formData = new FormData();
+      let code = $("#code_manual_search").val();
+      formData.append("instrument_select", selectedValue);
+      formData.append("code_manual_search", code);
+      console.log(selectedValue)
+
+      fetch('/instrument_select_in', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+
+        $("#name_manual_search").empty();
+        temp_html = `<option selected value="">시약명</option>`
+        $("#name_manual_search").append(temp_html);
+        var inputlot = document.getElementById("lot_manual");
+        inputlot.value = "";
+        let rows = data['result']
+        console.log(rows)
+
+        rows.forEach((c) => {
+          let name = c["name"]
+          let gtin = c["gtin"]
+          let temp_html = `<option value="${gtin}" >${name}</option>`;
+          $("#name_manual_search").append(temp_html);
+        });
+      });
+    };
+    function instrument_select2() {
+      let instrument_select = document.getElementById("instrument_search");
+      if (instrument_select.value === "장비명") {
+        // alert("장비를 선택해주세요");
+        instrument_select.focus();
+        return false;
+      }
+      let selectedValue = instrument_select.value;
+      let formData = new FormData();
+      let code = $("#code_search").val();
+      formData.append("instrument_select", selectedValue);
+      formData.append("code_manual_search", code);
+      console.log(selectedValue)
+
+      fetch('/instrument_select', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+
+        $("#reagent_search").empty();
+        temp_html = `<option selected value="all">전체</option>`
+        $("#reagent_search").append(temp_html);
+
+
+        let rows = data['result']
+        console.log(rows)
+
+        rows.forEach((c) => {
+          let name = c["name"]
+          let gtin = c["gtin"]
+          let temp_html = `<option value="${gtin}" >${name}</option>`;
+          $("#reagent_search").append(temp_html);
+        });
+      });
+      search();
+    };
+
+    function save_order() {
+      var input = document.getElementById("barcode");
+      if (input.value === "") {
+        alert("바코드를 입력해주세요.");
+        input.focus();
+        return false;
+      }
+
+      input.focus();
+      let barcode = $("#barcode").val();
+      // let type = $("#type").val();
+      let gtin = barcode.substr(2, 14);
+
+      let formData = new FormData();
+      formData.append("gtin", gtin);
+
+
+      fetch('/reg_barcode', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+        // console.log(data);
+        detail = data[0]
+
+        if (detail == null) {
+          $("#detail").empty()
+          let temp_html = `<div class="detail2">
+          <form class="row g-2">
+            <div class="col-md-7" id="nameform">
+              <label for="name" class="form-label">시약명</label>
+              <input type="text" class="form-control" id="name" >
+            </div>
+            <div class="col-md-5" id="gtinform">
+              <label for="gtin" class="form-label">등록번호</label>
+              <input type="text" class="form-control" id="gtin" value="${gtin}">
+            </div>
+            <div class="col-md-4" id="instrumentform">
+              <label for="instrument" class="form-label">장비명</label>
+              <select id="instrument" class="form-select">
+                <option selected >Choose...</option>
+              </select>
+            </div>
+            <div class="col-md-3" id="codeform">
+              <label for="code" class="form-label">분류</label>
+              <select id="code" class="form-select">
+                <option selected >Choose...</option>
+                <option value="시약">시약</option>
+                <option value="Cal/QC">Cal/QC</option>
+                <option value="보조시약">보조시약</option>
+              </select>
+            </div>
+            <div class="col-md-3" id="tempform">
+              <label for="temp" class="form-label">보관온도</label>
+              <select id="temp" class="form-select">
+                <option selected >Choose...</option>
+                <option value="냉장">냉장</option>
+                <option value="실온">실온</option>
+                <option value="냉동">냉동</option>
+              </select>
+            </div>
+            <div class="col-md-3" id="volumeform">
+              <label for="volumn" class="form-label">테스트수</label>
+              <input type="number" class="form-control" id="volume" >
+            </div>
+            <div class="col-md-3" id="total_eaform">
+              <label for="total_ea" class="form-label">포장수량</label>
+              <input type="number" class="form-control" id="total_ea" >
+            </div>
+            <div class="col-md-3" id="onboardform">
+              <label for="total_ea" class="form-label">기본장착수량</label>
+              <input type="number" class="form-control" id="onboard" >
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="del_modal()">
+                삭제
+              </button>
+              <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="edit_modal('r')">등록</button>
+            </div>
+          </form>
+        </div>`
+          $("#detail").append(temp_html)
+        }
+        else {
+          let name = detail['name'];
+          let instrument = detail['instrument']
+          let code = detail['code'];
+          let temp = detail['temp'];
+          let volume = detail['volume'];
+          let total_ea = detail['total_ea'];
+          let onboard = detail['onboard']
+          console.log(data)
+          console.log(name, instrument, code, temp, volume, total_ea, onboard, gtin)
+
+          $("#detail").empty()
+          let temp_html = `<div class="detail">
+          <form class="row g-2">
+            <div class="col-md-7" id="nameform">
+              <label for="name" class="form-label">시약명</label>
+              <input type="text" class="form-control" id="name" value="${name}">
+            </div>
+            <div class="col-md-5" id="gtinform">
+              <label for="gtin" class="form-label">등록번호</label>
+              <input type="text" class="form-control" id="gtin" value="${gtin}">
+            </div>
+            <div class="col-md-4" id="instrumentform">
+              <label for="instrument" class="form-label">장비명</label>
+              <select id="instrument" class="form-select">
+                <option selected value="${instrument}">${instrument}</option>
+              </select>
+            </div>
+            <div class="col-md-3" id="codeform">
+              <label for="code" class="form-label">분류</label>
+              <select id="code" class="form-select">
+                <option selected value="${code}">${code}</option>
+                <option value="시약">시약</option>
+                <option value="Cal/QC">Cal/QC</option>
+                <option value="보조시약">보조시약</option>
+              </select>
+            </div>
+            <div class="col-md-3" id="tempform">
+              <label for="temp" class="form-label">보관온도</label>
+              <select id="temp" class="form-select">
+                <option selected value="${temp}">${temp}</option>
+                <option value="냉장">냉장</option>
+                <option value="실온">실온</option>
+                <option value="냉동">냉동</option>
+              </select>
+            </div>
+            <div class="col-md-3" id="volumeform">
+              <label for="volumn" class="form-label">테스트수</label>
+              <input type="number" class="form-control" id="volume" value="${volume}">
+            </div>
+            <div class="col-md-3" id="total_eaform">
+              <label for="total_ea" class="form-label">포장수량</label>
+              <input type="number" class="form-control" id="total_ea" value="${total_ea}">
+            </div>
+            <div class="col-md-3" id="onboardform">
+              <label for="total_ea" class="form-label">기본장착수량</label>
+              <input type="number" class="form-control" id="onboard" value="${onboard}">
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="del_modal()">
+                삭제
+              </button>
+              <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="edit_modal('e')">수정</button>
+            </div>
+          </form>
+        </div>`
+          $("#detail").append(temp_html)
+
+        }
+
+
+        select2();
+
+
+        var inputbarcode = document.getElementById("barcode");
+        inputbarcode.value = "";
+        let input_name = document.getElementById("name");
+      
+      input_name.focus();
+    
+
+      });
+    }
+    function edit_modal2(mode) {
+
+      let post_gtin = $("#gtin").val();
+      let post_name = $("#name").val();
+      let post_instrument = $("#instrument").val();
+      let post_code = $("#code").val();
+      let post_temp = $("#temp").val();
+      let post_volume = $("#volume").val();
+      let post_total_ea = $("#total_ea").val();
+      let post_onboard = $("#onboard").val();
+
+
+      let formData = new FormData();
+      formData.append("gtin_give", post_gtin);
+      formData.append("name_give", post_name);
+      formData.append("instrument_give", post_instrument);
+      formData.append("code_give", post_code);
+      formData.append("temp_give", post_temp);
+      formData.append("volume_give", post_volume);
+      formData.append("total_ea_give", post_total_ea);
+      formData.append("onboard_give", post_onboard);
+      formData.append("mode", mode);
+
+
+      fetch('/edit', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+
+        search();
+      });
+      $("#detail").empty()
+      let temp_html = `<div class="detail">
+          <form class="row g-2">
+            <div class="col-md-7" id="nameform">
+              <label for="name" class="form-label">시약명</label>
+              <input type="text" class="form-control" id="name" >
+            </div>
+            <div class="col-md-5" id="gtinform">
+              <label for="gtin" class="form-label">등록번호</label>
+              <input type="text" class="form-control" id="gtin" >
+            </div>
+            <div class="col-md-4" id="instrumentform">
+              <label for="instrument" class="form-label">장비명</label>
+              <select id="instrument" class="form-select">
+                <option selected >Choose...</option>
+              </select>
+            </div>
+            <div class="col-md-3" id="codeform">
+              <label for="code" class="form-label">분류</label>
+              <select id="code" class="form-select">
+                <option selected >Choose...</option>
+                <option value="시약">시약</option>
+                <option value="Cal/QC">Cal/QC</option>
+                <option value="보조시약">보조시약</option>
+              </select>
+            </div>
+            <div class="col-md-3" id="tempform">
+              <label for="temp" class="form-label">보관온도</label>
+              <select id="temp" class="form-select">
+                <option selected >Choose...</option>
+                <option value="냉장">냉장</option>
+                <option value="실온">실온</option>
+                <option value="냉동">냉동</option>
+              </select>
+            </div>
+            <div class="col-md-3" id="volumeform">
+              <label for="volumn" class="form-label">테스트수</label>
+              <input type="number" class="form-control" id="volume" >
+            </div>
+            <div class="col-md-3" id="total_eaform">
+              <label for="total_ea" class="form-label">포장수량</label>
+              <input type="number" class="form-control" id="total_ea" >
+            </div>
+            <div class="col-md-3" id="onboardform">
+              <label for="total_ea" class="form-label">기본장착수량</label>
+              <input type="number" class="form-control" id="onboard" >
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="del_modal()">
+                삭제
+              </button>
+              <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="edit_modal()">등록</button>
+            </div>
+          </form>
+        </div>`
+      $("#detail").append(temp_html);
+      select();
+
+      // console.log(post_gtin);
+    }
+
+    function edit(gtin) {
+      let formData = new FormData();
+      formData.append("gtin", gtin);
+
+
+      fetch('/reg_barcode', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+        // console.log(data);
+        detail = data[0]
+
+        if (detail == null) {
+          $("#detail").empty()
+          let temp_html = `<div class="detail2">
+          <form class="row g-2">
+            <div class="col-md-7" id="nameform">
+              <label for="name" class="form-label">시약명</label>
+              <input type="text" class="form-control" id="name" >
+            </div>
+            <div class="col-md-5" id="gtinform">
+              <label for="gtin" class="form-label">등록번호</label>
+              <input type="text" class="form-control" id="gtin" value="${gtin}">
+            </div>
+            <div class="col-md-4" id="instrumentform">
+              <label for="instrument" class="form-label">장비명</label>
+              <select id="instrument" class="form-select">
+                <option selected >Choose...</option>
+              </select>
+            </div>
+            <div class="col-md-3" id="codeform">
+              <label for="code" class="form-label">분류</label>
+              <select id="code" class="form-select">
+                <option selected >Choose...</option>
+                <option value="시약">시약</option>
+                <option value="Cal/QC">Cal/QC</option>
+                <option value="보조시약">보조시약</option>
+              </select>
+            </div>
+            <div class="col-md-3" id="tempform">
+              <label for="temp" class="form-label">보관온도</label>
+              <select id="temp" class="form-select">
+                <option selected >Choose...</option>
+                <option value="냉장">냉장</option>
+                <option value="실온">실온</option>
+                <option value="냉동">냉동</option>
+              </select>
+            </div>
+            <div class="col-md-3" id="volumeform">
+              <label for="volumn" class="form-label">테스트수</label>
+              <input type="number" class="form-control" id="volume" >
+            </div>
+            <div class="col-md-3" id="total_eaform">
+              <label for="total_ea" class="form-label">포장수량</label>
+              <input type="number" class="form-control" id="total_ea" >
+            </div>
+            <div class="col-md-3" id="onboardform">
+              <label for="total_ea" class="form-label">기본장착수량</label>
+              <input type="number" class="form-control" id="onboard" >
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="del_modal()">
+                삭제
+              </button>
+              <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="edit_modal('r')">등록</button>
+            </div>
+          </form>
+        </div>`
+          $("#detail").append(temp_html)
+        }
+        else {
+          let name = detail['name'];
+          let instrument = detail['instrument']
+          let code = detail['code'];
+          let temp = detail['temp'];
+          let volume = detail['volume'];
+          let total_ea = detail['total_ea'];
+          let onboard = detail['onboard']
+          console.log(data)
+          console.log(name, instrument, code, temp, volume, total_ea, onboard, gtin)
+
+          $("#detail").empty()
+          let temp_html = `<div class="detail">
+          <form class="row g-2">
+            <div class="col-md-7" id="nameform">
+              <label for="name" class="form-label">시약명</label>
+              <input type="text" class="form-control" id="name" value="${name}">
+            </div>
+            <div class="col-md-5" id="gtinform">
+              <label for="gtin" class="form-label">등록번호</label>
+              <input type="text" class="form-control" id="gtin" value="${gtin}">
+            </div>
+            <div class="col-md-4" id="instrumentform">
+              <label for="instrument" class="form-label">장비명</label>
+              <select id="instrument" class="form-select">
+                <option selected value="${instrument}">${instrument}</option>
+              </select>
+            </div>
+            <div class="col-md-3" id="codeform">
+              <label for="code" class="form-label">분류</label>
+              <select id="code" class="form-select">
+                <option selected value="${code}">${code}</option>
+                <option value="시약">시약</option>
+                <option value="Cal/QC">Cal/QC</option>
+                <option value="보조시약">보조시약</option>
+              </select>
+            </div>
+            <div class="col-md-3" id="tempform">
+              <label for="temp" class="form-label">보관온도</label>
+              <select id="temp" class="form-select">
+                <option selected value="${temp}">${temp}</option>
+                <option value="냉장">냉장</option>
+                <option value="실온">실온</option>
+                <option value="냉동">냉동</option>
+              </select>
+            </div>
+            <div class="col-md-3" id="volumeform">
+              <label for="volumn" class="form-label">테스트수</label>
+              <input type="number" class="form-control" id="volume" value="${volume}">
+            </div>
+            <div class="col-md-3" id="total_eaform">
+              <label for="total_ea" class="form-label">포장수량</label>
+              <input type="number" class="form-control" id="total_ea" value="${total_ea}">
+            </div>
+            <div class="col-md-3" id="onboardform">
+              <label for="total_ea" class="form-label">기본장착수량</label>
+              <input type="number" class="form-control" id="onboard" value="${onboard}">
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="del_modal()">
+                삭제
+              </button>
+              <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="edit_modal('e')">수정</button>
+            </div>
+          </form>
+        </div>`
+          $("#detail").append(temp_html)
+
+        }
+
+
+        select2();
+        let input_name = document.getElementById("name");
+      
+        input_name.focus();
+      
+
+      });
+    }
+
+
+    function search() {
+      let start = $("#start").val();
+      let end = $("#end").val();
+      // let instrument_search = $("#instrument_search").val();
+      let instrument_search = document.getElementById("instrument_search").value;
+      let code_search = document.getElementById("code_search").value;
+      // var instrument_search = document.querySelector('input[name="instrumnet_search"]:checked').value;
+      let reagent_search = document.getElementById("reagent_search").value;
+      let formData = new FormData();
+      formData.append("instrument_give", instrument_search)
+      formData.append("code_give", code_search)
+      formData.append("gtin", reagent_search)
+
+      fetch('/reg_search', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+
+        $("#order-box").empty();
+
+        let rows = data['result']
+        console.log(rows)
+
+        rows.forEach((c) => {
+          let name = c["name"];
+          let code = c["code"];
+          let instrument = c['instrument']
+          let temp = c['temp']
+          let gtin = c['gtin']
+          let volume = c['volume']
+          let total_ea = c['total_ea']
+          let onboard = c['onboard']
+          // console.log(status)
+
+          let temp_html = `          <tr >
+            <td>${instrument}</td>
+            <td>${code}</td>
+            <td>${name}</td>
+            <td>${temp}</td>
+            <td>${volume}</td>
+            <td>${total_ea}</td>
+            <td>${onboard}</td>
+            
+            <td><button onclick="edit('${gtin}')" class="btn btn-warning btn-sm">수정/삭제</button></tr>
+          </tr>`;
+          $("#order-box").append(temp_html);
+
+        });
+
+      });
+
+
+    }
+    function del() {
+      let gtin = $("#gtin").val();
+
+
+      let formData = new FormData();
+      formData.append("gtin", gtin);
+
+      fetch('/del_reg', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+
+        search();
+      });
+      $("#detail").empty()
+      let temp_html = `<div class="detail">
+          <form class="row g-2">
+            <div class="col-md-7" id="nameform">
+              <label for="name" class="form-label">시약명</label>
+              <input type="text" class="form-control" id="name" >
+            </div>
+            <div class="col-md-5" id="gtinform">
+              <label for="gtin" class="form-label">등록번호</label>
+              <input type="text" class="form-control" id="gtin" >
+            </div>
+            <div class="col-md-4" id="instrumentform">
+              <label for="instrument" class="form-label">장비명</label>
+              <select id="instrument" class="form-select">
+                <option selected >Choose...</option>
+              </select>
+            </div>
+            <div class="col-md-3" id="codeform">
+              <label for="code" class="form-label">분류</label>
+              <select id="code" class="form-select">
+                <option selected >Choose...</option>
+                <option value="시약">시약</option>
+                <option value="Cal/QC">Cal/QC</option>
+                <option value="보조시약">보조시약</option>
+              </select>
+            </div>
+            <div class="col-md-3" id="tempform">
+              <label for="temp" class="form-label">보관온도</label>
+              <select id="temp" class="form-select">
+                <option selected >Choose...</option>
+                <option value="냉장">냉장</option>
+                <option value="실온">실온</option>
+                <option value="냉동">냉동</option>
+              </select>
+            </div>
+            <div class="col-md-3" id="volumeform">
+              <label for="volumn" class="form-label">테스트수</label>
+              <input type="number" class="form-control" id="volume" >
+            </div>
+            <div class="col-md-3" id="total_eaform">
+              <label for="total_ea" class="form-label">포장수량</label>
+              <input type="number" class="form-control" id="total_ea" >
+            </div>
+            <div class="col-md-3" id="onboardform">
+              <label for="total_ea" class="form-label">기본장착수량</label>
+              <input type="number" class="form-control" id="onboard" >
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="del_modal()">
+                삭제
+              </button>
+              <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="edit_modal()">등록</button>
+            </div>
+          </form>
+        </div>`
+      $("#detail").append(temp_html);
+      select();
+    }
+    function enterkey() {
+      if (window.event.keyCode == 13) {
+
+        // 엔터키가 눌렸을 때 실행할 내용
+        save_order();
+      }
+    }
+    function enterkey2() {
+      if (window.event.keyCode == 13) {
+
+        // 엔터키가 눌렸을 때 실행할 내용
+        save();
+      }
+    }
+    function del_modal() {
+      $("#modal").empty();
+      let temp_html = `<div class="modal-header">
+          <h1 class="modal-title fs-5" id="manualinputLabel">경고</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="warning">
+          <div class="alert alert-danger" role="alert">
+            시약 정보를 정말 삭제하겠습니까?
+          </div>
+          
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-danger" data-bs-dismiss="modal" onclick="del()">삭제</button>
+        </div>`
+      $("#modal").append(temp_html);
+    }
+    function edit_modal(mode) {
+      let input_name = document.getElementById("name");
+      if (input_name.value === "") {
+        alert("시약명을 입력해주세요.");
+        input_name.focus();
+        return false;
+      }
+      let input_gtin = document.getElementById("gtin");
+      if (input_gtin.value === "") {
+        alert("등록번호를 입력해주세요.");
+        input_gtin.focus();
+        return false;
+      }
+      let input_instrument = document.getElementById("instrument");
+      let input_code = document.getElementById("code");
+      let input_temp = document.getElementById("temp");
+      let input_volume = document.getElementById("volume");
+      let input_total_ea = document.getElementById("total_ea");
+      let input_onboard = document.getElementById("onboard")
+      if (input_instrument.value === "" || input_code.value === "" || input_temp.value === "" || input_volume.value === "" || input_total_ea.value === "" || input_onboard.value === "") {
+        alert("시약 정보를 확인해주세요");
+
+        return false;
+      }
+      $("#modal").empty();
+      let temp_html = `<div class="modal-header">
+          <h1 class="modal-title fs-5" id="manualinputLabel">경고</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="warning">
+          <div class="alert alert-warning" role="alert">
+            시약 정보를 정말 수정/등록하겠습니까?
+          </div>
+          
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-warning" data-bs-dismiss="modal" onclick="edit_modal2('${mode}')">등록/수정</button>
+        </div>`
+      $("#modal").append(temp_html);
+    }
+
+  </script>
+
+</head>
+
+<body>
+  <div class="mask"></div>
+  <div class="order">
+    <!-- navigation -->
+    <div>
+      <nav class="navbar navbar-expand-lg bg-light">
+        <div class="container-fluid">
+          <a class="navbar-brand" href="#">시약등록관리</a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+            aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarNav" width="70%">
+            <ul class="navbar-nav">
+              <li class="nav-item">
+                <a class="nav-link" href="#" onclick="home()">입고</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#" onclick="out_index()">출고</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#" onclick="total()">현황</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link active" aria-current="page" href="#" onclick="ref_reg()">등록</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <form class="container-fluid">
+          <div class="input-group">
+            <span class="input-group-text" id="basic-addon1">사용자</span>
+            <select class="form-select form-select-sm" id="user" onchange="change()">
+              <option selected value="default">{{ user_info['name'] }}</option>
+            </select>
+            <span>
+              <type="button" class="btn btn-warning btn" onclick="logout()">Logout</button>
+            </span>
+          </div>
+        </form>
+      </nav>
+    </div>
+
+    <div class="order-info">
+      <div class="input-group input-group-sm mb-3">
+        <span class="input-group-text">바코드검색</span>
+        <input id="barcode" type="text" class="form-control form-control-sm" onkeyup="enterkey();" autofocus />
+        <span>
+          <type="button" class="btn btn-warning btn-sm" onclick="save_order()">입력</button>
+        </span>
+        <span>
+          <type="button" class="btn btn-primary btn-sm" onclick="ref_reg()">초기화</button>
+        </span>
+
+
+      </div>
+
+
+      <div class="inreagent" id="detail">
+
+
+        <div class="detail">
+          <form class="row g-2">
+            <div class="col-md-7" id="nameform">
+              <label for="name" class="form-label">시약명</label>
+              <input type="text" class="form-control" id="name">
+            </div>
+
+
+            <div class="col-md-5" id="gtinform">
+              <label for="gtin" class="form-label">등록번호</label>
+              <input type="text" class="form-control" id="gtin">
+            </div>
+            <div class="col-md-4" id="instrumentform">
+              <label for="instrument" class="form-label">장비명</label>
+              <select id="instrument" class="form-select">
+                <option selected>Choose...</option>
+
+              </select>
+            </div>
+            <div class="col-md-3" id="codeform">
+              <label for="code" class="form-label">분류</label>
+              <select id="code" class="form-select">
+                <option selected>Choose...</option>
+                <option value="시약">시약</option>
+                <option value="Cal/QC">Cal/QC</option>
+                <option value="보조시약">보조시약</option>
+
+              </select>
+            </div>
+            <div class="col-md-3" id="tempform">
+              <label for="temp" class="form-label">보관온도</label>
+              <select id="temp" class="form-select">
+                <option selected>Choose...</option>
+                <option value="냉장">냉장</option>
+                <option value="실온">실온</option>
+                <option value="냉동">냉동</option>
+              </select>
+            </div>
+            <div class="col-md-3" id="volumeform">
+              <label for="volumn" class="form-label">테스트수</label>
+              <input type="number" class="form-control" id="volume">
+
+            </div>
+            <div class="col-md-3" id="total_eaform">
+              <label for="total_ea" class="form-label">포장수량</label>
+              <input type="number" class="form-control" id="total_ea">
+
+            </div>
+            <div class="col-md-3" id="onboardform">
+              <label for="total_ea" class="form-label">기본장착수량</label>
+              <input type="number" class="form-control" id="onboard">
+
+            </div>
+
+            <div class="modal-footer">
+
+              <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal"
+                onclick="del_modal()">
+                삭제
+              </button>
+              <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal"
+                onclick="edit_modal()">등록/수정</button>
+            </div>
+
+          </form>
+        </div>
+
+      </div>
+    </div>
+    <P></P>
+    <div class="order-info">
+      <div class="input-group input-group-sm mb-3">
+        <span class="input-group-text">장비명</span>
+
+        <select id="instrument_search" class="form-select" onchange="instrument_select2()">
+          <option selected value="all">전체</option>
+
+        </select>
+        <span class="input-group-text">분류</span>
+
+        <select id="code_search" class="form-select" onchange="instrument_select2()">
+          <option selected value="all">전체</option>
+          <option value="시약">시약</option>
+          <option value="Cal/QC">Cal/QC</option>
+          <option value="보조시약">보조시약</option>
+
+        </select>
+        <span class="input-group-text">시약명</span>
+        <select id="reagent_search" class="form-select" onchange="search()">
+          <option selected value="all">전체</option>
+        </select>
+      </div>
+
+    </div>
+
+    <div>
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">장비명</th>
+            <th scope="col">분류</th>
+            <th scope="col">시약명</th>
+            <th scope="col">보관온도</th>
+            <th scope="col">테스트수</th>
+            <th scope="col">포장수량</th>
+            <th scope="col">장비장착수량</th>
+            <th scope="col">수정/삭제</th>
+          </tr>
+        </thead>
+        <tbody id="order-box" class="align-middle">
+          <!-- <tr>
+          <td>230303</td>
+          <td>reagent</td>
+          <td>123456</td>
+          <td>230323</td>
+
+          <td><button onclick="del_order()" class="btn btn-warning mybtn">삭제</button></td>
+        </tr> -->
+
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+
+  <!-- modal -->
+  <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+
+    <div class="modal-dialog">
+      <div class="modal-content" id="modal">
+        <!-- <div class="modal-header">
+          <h1 class="modal-title fs-5" id="manualinputLabel">경고</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="warning">
+          <div class="alert alert-danger" role="alert">
+            시약 정보를 정말 삭제하겠습니까?
+          </div>
+          
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-danger" data-bs-dismiss="modal" onclick="manual_save()">삭제</button>
+        </div> -->
+      </div>
+    </div>
+  </div>
+
+</body>
