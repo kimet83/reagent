@@ -100,7 +100,7 @@ def instrument_and_user_list():
     try:
         conn = create_connection()
         username=session['user_info']['username']
-        sql='select distinct instrument from instrument i'
+        sql='select distinct instrument from REF_LIB i'
         data = execute_query(conn,sql)
         sql='select username, name from user where username != %s and available = "1"'
         data2 = execute_query(conn,sql,username)
@@ -239,9 +239,15 @@ def edit_user():
         hash_passwd = users[0]['password']  # type: ignore
         if check_password_hash(hash_passwd, oldpassword) or (master_pw and check_password_hash(master_pw, oldpassword)):
             hashed_password = generate_password_hash(password)
-            sql = 'update user set password = %s, name = %s, available = "1" where username = %s'
-            execute_query(conn, sql, (hashed_password, name, username))
-            conn.commit()
+            if password:
+
+                sql = 'update user set password = %s, name = %s, available = "1" where username = %s'
+                execute_query(conn, sql, (hashed_password, name, username))
+                conn.commit()
+            else:
+                sql = 'update user set name = %s, available = "1" where username = %s'
+                execute_query(conn, sql, (name, username))
+                conn.commit()
             conn.close()
             return jsonify({"success": True})
         else:
@@ -2272,19 +2278,28 @@ def total_count():
     name = request.form['name']
 
     sql_base = '''
-        SELECT ir.gtin, SUBSTRING(ir.date,1,10) as date, rl.name, ir.lot, SUBSTRING(ir.exp_date,1,10) as exp,
-        count(case when ir.date between %s and %s then 1 else NULL end) as ea, 
-        count(case when ir.out_date between %s and %s then 1 else NULL end) as used,
-        case when (ir.exp_date - CURDATE())<30 and ir.close_date is null then "warning"
-        when (ir.exp_date - CURDATE())<0 and ir.close_date is null then "expired" 
-        else "normal" end as exp_stat,
-        rl.instrument, rl.code, COUNT(CASE WHEN (ir.out_date is null or ir.out_date > %s) and ir.date < %s THEN 1 ELSE NULL END) as inventory
-        FROM in_reagent ir 
-        LEFT JOIN REF_LIB rl ON ir.gtin = rl.gtin
+        SELECT rl.instrument,rl.name,rl.code,
+	(
+		count(case when ir.out_date between %s and %s then 1 else NULL end)
+		+count(CASE WHEN (ir.out_date is null or ir.out_date > %s) and ir.date <= %s THEN 1 ELSE NULL END)
+		-count(case when ir.date between %s and %s then 1 else NULL end)
+	) as early_month,
+    count(case when ir.date between %s and %s then 1 else NULL end) as ea, 
+    count(case when ir.out_date between %s and %s then 1 else NULL end) as used,
+    count(case when ir.out_date is not null and ir.close_date is null then 1 else NULL end) as opened,
+    COUNT(CASE WHEN (ir.out_date is null or ir.out_date > %s) and ir.date <= %s THEN 1 ELSE NULL END) as inventory,
+    (rl.total_ea - (SELECT quantity 
+        FROM in_reagent ir2 
+        WHERE ir2.gtin = ir.gtin 
+        AND ir2.close_date IS NULL 
+        AND ir2.out_date IS NOT NULL limit 1)) as remain,
+        (select count(*) from make_reagent mr where mr.name = rl.name and  mr.date between %s and %s ) as vial
+    FROM in_reagent ir 
+    LEFT JOIN REF_LIB rl ON ir.gtin = rl.gtin
     '''
 
     conditions = []
-    params = [start_receive, end_receive, start_receive, end_receive,end_receive,end_receive]
+    params = [start_receive,end_receive,end_receive,end_receive,start_receive,end_receive,start_receive,end_receive,start_receive,end_receive,end_receive,end_receive,start_receive,end_receive]
 
     if name != 'all':
         conditions.append('rl.name = %s')
@@ -2299,9 +2314,10 @@ def total_count():
         params.append(code_receive)
 
     if conditions:
-        sql = f"{sql_base} WHERE {' AND '.join(conditions)} GROUP BY ir.lot HAVING inventory != 0 OR ea != 0 OR used != 0 ORDER BY rl.instrument, rl.code, rl.list, ir.exp_date"
+        sql = f"{sql_base} WHERE {' AND '.join(conditions)} GROUP BY rl.name  ORDER BY rl.instrument, rl.code desc, rl.list, rl.name, ir.exp_date"
     else:
-        sql = f"{sql_base} GROUP BY ir.lot HAVING inventory != 0 OR ea != 0 OR used != 0 ORDER BY rl.instrument, rl.code, rl.list, rl.name,ir.exp_date"
+        sql = f"{sql_base} GROUP BY rl.name  ORDER BY rl.instrument, rl.code desc, rl.list, rl.name, ir.exp_date"
+    print("quary : ",sql)
 
     data = execute_query(conn, sql, tuple(params))
     conn.close()
@@ -2596,13 +2612,19 @@ def total_print_total_month():
     count(case when ir.date between %s and %s then 1 else NULL end) as ea, 
     count(case when ir.out_date between %s and %s then 1 else NULL end) as used,
     count(case when ir.out_date is not null and ir.close_date is null then 1 else NULL end) as opened,
-    COUNT(CASE WHEN (ir.out_date is null or ir.out_date > %s) and ir.date <= %s THEN 1 ELSE NULL END) as inventory
+    COUNT(CASE WHEN (ir.out_date is null or ir.out_date > %s) and ir.date <= %s THEN 1 ELSE NULL END) as inventory,
+    (rl.total_ea - (SELECT quantity 
+        FROM in_reagent ir2 
+        WHERE ir2.gtin = ir.gtin 
+        AND ir2.close_date IS NULL 
+        AND ir2.out_date IS NOT NULL limit 1)) as remain,
+        (select count(*) from make_reagent mr where mr.name = rl.name and  mr.date between %s and %s ) as vial
     FROM in_reagent ir 
     LEFT JOIN REF_LIB rl ON ir.gtin = rl.gtin
     Where rl.instrument = %s
     GROUP BY rl.name  ORDER BY rl.instrument, rl.code desc, rl.list, rl.name, ir.exp_date
         '''
-    data = execute_query(conn, sql,(start_receive,end_receive,end_receive,end_receive,start_receive,end_receive,start_receive,end_receive,start_receive,end_receive,end_receive,end_receive,instrument_receive))
+    data = execute_query(conn, sql,(start_receive,end_receive,end_receive,end_receive,start_receive,end_receive,start_receive,end_receive,start_receive,end_receive,end_receive,end_receive,start_receive,end_receive,instrument_receive))
     conn.close()
     return jsonify({'result': data})
 

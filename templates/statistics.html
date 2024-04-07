@@ -91,66 +91,52 @@
       fetch('/total_count', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
 
         $("#order-box").empty();
-
-        let rows = data['result']
-        console.log(rows)
-        let itemsPerPage = 12;
-        let startIndex = (page - 1) * itemsPerPage;
-        let endIndex = startIndex + itemsPerPage;
-        let currentPageData = rows.slice(startIndex, endIndex);
-        currentPageData.forEach((c) => {
-          let gtin = c["gtin"];
-          let date = c["date"].substr(2);
-
-          let instrument = c["instrument"]
-          let name = c["name"];
-          let lot = c["lot"];
-          let exp = c["exp"].substr(2);
-          let ea = c["ea"];
-          let code = c["code"];
-          let inventory = c['inventory']
-          let used = c['used']
-          let exp_stat = c['exp_stat'];
-          let badgeExp_expired = (exp_stat === 'expired') ? '<span class="badge rounded-pill text-bg-danger">Expired</span>' : '';
-          let badgeExp_Warning = (exp_stat === 'warning') ? '<span class="badge rounded-pill text-bg-warning">Warning</span>' : '';
-
-          // let badgePrimary = (comment === null || comment.trim() === "") ? '' : '<span class="badge text-bg-primary">!</span>';
-
-          let temp_html = `          <tr>
-            <td>${instrument}</td>
-            <td>${code}</td>
-            <td>${name}${badgeExp_Warning}${badgeExp_expired}</td>
-            <td>${lot}</td>
-            <td>${exp}</td>
-            <td>${ea}</td>
-            <td>${used}</td>
-            <td>${inventory}</td>
-          
-          </tr>`;
+        let rows_total = data['result']
+        console.log(rows_total)
+        rows_total.forEach((a) => {
+          let instrument = a['instrument']
+          let name = a['name']
+          let code = a['code']
+          let early_month = a['early_month'];
+          let ea = a['ea'];
+          let used = a['used'];
+          let inventory = a['inventory']
+          let opened = a['opened']
+          let vial = a['vial']
+          let remain_stat = (a['remain'] === null || a['remain'] === '0') ? '0' : a['remain'];
+          let vial_stat = (used === vial) ? '' : `(${vial})`;
+          let temp_html = `
+              <tr>
+                <td>${instrument}</td>
+                <td>${code}</td>
+                <td>${name}</td>
+                <td>${opened}</td>
+                <td>${early_month}</td>
+                <td>${ea}</td>
+                <td>${used}${vial_stat}</td>
+                <td>${inventory}(${remain_stat})</td>
+              </tr>`
           $("#order-box").append(temp_html);
-
-
+        })
         });
-        createPaginationControls(data['result'].length, itemsPerPage, page);
-      });
 
-      search_open()
+      // search_open()
     }
-    function createPaginationControls(totalItems, itemsPerPage, currentPage) {
-      let totalPages = Math.ceil(totalItems / itemsPerPage);
-      let paginationHtml = '<ul class="pagination">';
+    // function createPaginationControls(totalItems, itemsPerPage, currentPage) {
+    //   let totalPages = Math.ceil(totalItems / itemsPerPage);
+    //   let paginationHtml = '<ul class="pagination">';
 
-      for (let i = 1; i <= totalPages; i++) {
-        if (i === currentPage) {
-          paginationHtml += `<li class="page-item active"><a class="page-link" href="#" onclick="total_count(${i})">${i}</a></li>`;
-        } else {
-          paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="total_count(${i})">${i}</a></li>`;
-        }
-      }
+    //   for (let i = 1; i <= totalPages; i++) {
+    //     if (i === currentPage) {
+    //       paginationHtml += `<li class="page-item active"><a class="page-link" href="#" onclick="total_count(${i})">${i}</a></li>`;
+    //     } else {
+    //       paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="total_count(${i})">${i}</a></li>`;
+    //     }
+    //   }
 
-      paginationHtml += '</ul>';
-      $("#pagination").html(paginationHtml);
-    }
+    //   paginationHtml += '</ul>';
+    //   $("#pagination").html(paginationHtml);
+    // }
     function instrument_select() {
       let instrument_select = document.getElementById("instrument_search");
       if (instrument_select.value === "장비명") {
@@ -185,63 +171,7 @@
       total_count();
     };
 
-    function search_open() {
-      var instrument_search1 = document.getElementById("instrument_search").value;
-      var code_search = document.getElementById("code_search").value;
-      // var instrument_search = document.querySelector('input[name="instrumnet_search"]:checked').value;
-
-      let formData = new FormData();
-      formData.append("instrument_give", instrument_search1)
-      formData.append("code_give", code_search)
-      console.log(instrument_search1, code_search)
-      fetch('/search_open', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
-
-        let rows = data['result']
-        console.log(rows)
-        $("#order-box2").empty()
-
-        rows.forEach((a) => {
-          // let name = a["name"];
-          // let part = a["part"];
-          // let code = a["Code"];
-          let date = a["date"].substr(2);
-          let out_date = a["out_date"].substr(2);
-          let instrument = a["instrument"]
-          let code = a["code"]
-          let name = a["name"]
-          let lot = a["lot"]
-          let exp = a["exp"].substr(2);
-          let quantity = a["quantity"]
-          let total_ea = a["total_ea"]
-          let id = a["id"]
-          let open_user = a["open_user"]
-          let remain = total_ea - quantity;
-          let exp_stat = a['exp_stat'];
-          let comment = a['comment'];
-          let badgeExp_expired = (exp_stat === 'expired') ? '<span class="badge rounded-pill text-bg-danger">Expired</span>' : '';
-          let badgeExp_Warning = (exp_stat === 'warning') ? '<span class="badge rounded-pill text-bg-warning">Warning</span>' : '';
-          let badgePrimary = (comment === null || comment.trim() === "") ? '' : `<span class="badge text-bg-primary" data-bs-toggle="tooltip" data-bs-title="${comment}">!</span>`;
-
-          let temp_html = `<tr>
-            <td>${date}</td>
-            <td>${out_date}</td>
-            <td>${instrument}</td>
-            <td>${code}</td>
-            <td>${name}${badgeExp_Warning}${badgeExp_expired}${badgePrimary}</td>
-            <td>${lot}</td>
-            <td>${exp}</td>
-            <td>${remain}/${total_ea}</td>
-            <td>${open_user}</td>
-            
-          </tr>`;
-          $("#order-box2").append(temp_html);
-        });
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-          return new bootstrap.Tooltip(tooltipTriggerEl)
-        })
-      });
-    }
+    
 
 
     function enterkey() {
@@ -350,8 +280,8 @@
             <th scope="col">장비명</th>
             <th scope="col">분류</th>
             <th scope="col">시약명</th>
-            <th scope="col">Lot</th>
-            <th scope="col">유효기간</th>
+            <th scope="col">사용중</th>
+            <th scope="col">이월</th>
             <th scope="col">입고</th>
             <th scope="col">사용</th>
             <th scope="col">재고</th>
@@ -366,43 +296,9 @@
 
         </tbody>
       </table>
-      <div class="container"><span class="page" id="pagination"></span></div>
+      
     </div>
-    <div>
-      <h4>개봉/사용중 시약</h4>
-      <table class="table table-striped">
-        <thead>
-          <tr>
-            <th scope="col">입고일</th>
-            <th scope="col">시작일</th>
-            <th scope="col">장비명</th>
-            <th scope="col">분류</th>
-            <th scope="col">시약명</th>
-            <th scope="col">lot.No</th>
-            <th scope="col">유효기간</th>
-            <th scope="col">잔량</th>
-            <th scope="col">출고자</th>
-
-          </tr>
-        </thead>
-        <tbody id="order-box2" class="align-middle">
-          <!-- <tr>
-            <td>23-03-03</td>
-            <td>23-03-03</td>
-            <td>t511</td>
-            <td>Cal/QC</td>
-            <td>reagent 123123123</td>
-            <td>123456</td>
-            <td>230323</td>
-            <td>2/10</td>
-            <td><button onclick="add_order()" class="btn btn-warning btn-sm">사용</button></td>
-
-            <td><button onclick="cancel_order()" class="btn btn-warning btn-sm">취소</button></td>
-          </tr> -->
-
-        </tbody>
-      </table>
-    </div>
+    
   </div>
 
 

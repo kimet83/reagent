@@ -44,7 +44,8 @@
           let instrument1 = b["instrument"]
           // let instrument1 = b[0]
           let temp_html = `<option value="${instrument1}" >${instrument1}</option>`;
-          $("#instrument").append(temp_html);
+          let temp_html2 = `<option value="${instrument1}">`;
+          $("#instrument_list").append(temp_html2);
           $("#instrument_search").append(temp_html);
 
         })
@@ -737,10 +738,10 @@
             </div>
             <div class="col-md-4" id="instrumentform">
               <label for="instrument" class="form-label">장비명</label>
-              <select id="instrument" class="form-select">
-                <option value="" selected>Choose...</option>
-
-              </select>
+              <input list="instrument_list" id="instrument" type="text" class="form-control">
+              <datalist id="instrument_list">
+              
+              </datalist>
             </div>
             <div class="col-md-2" id="codeform">
               <label for="code" class="form-label">분류</label>

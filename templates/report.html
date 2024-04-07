@@ -332,6 +332,7 @@
       fetch('/total_print_total_month', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
         $("#content-container-total").empty();
         let rows_total = data['result']
+        console.log(rows_total)
         rows_total.forEach((a) => {
           let name = a['name']
           let code = a['code']
@@ -340,6 +341,9 @@
           let used = a['used'];
           let inventory = a['inventory']
           let opened = a['opened']
+          let vial = a['vial']
+          let remain_stat = (a['remain'] === null || a['remain'] === '0') ? '0' : a['remain'];
+          let vial_stat = (used === vial) ? '' : `(${vial})`;
           let temp_html = `
               <tr>
                 <td>${code}</td>
@@ -347,8 +351,8 @@
                 <td>${opened}</td>
                 <td>${early_month}</td>
                 <td>${ea}</td>
-                <td>${used}</td>
-                <td>${inventory}</td>
+                <td>${used}${vial_stat}</td>
+                <td>${inventory}(${remain_stat})</td>
               </tr>`
           $("#content-container-total").append(temp_html);
         })
