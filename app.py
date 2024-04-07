@@ -39,7 +39,7 @@ def backup_database():
     backup_file = os.path.join(backup_dir, f"backup_{current_time}.sql")
 
     # mysqldump를 사용하여 데이터베이스 백업
-    subprocess.run(["mysqldump", "-u", "username", "-p", "password", "REAGENT", ">", backup_file], shell=True)
+    subprocess.run(["mysqldump", "-u", "{DB_USER}", "-p", "{DB_PASSWORD}", "{DB_NAME}", ">", backup_file], shell=True)
 
     # 백업 파일이 생성된 후, 지난 2달 간의 백업 파일을 보관하고 나머지는 삭제
     delete_old_backups()
