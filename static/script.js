@@ -18,20 +18,20 @@ function logout() {
       console.error('오류 발생:', error);
     });
 }
-
-function change() {
+// 사용자 로그인 변경
+function user_change() {
   let selectedUser = document.getElementById("user").value;
   console.log("사용자 선택이 변경되었습니다. 선택된 사용자:", selectedUser);
   let formData = new FormData();
   formData.append("username", selectedUser);
 
-  fetch('/change', { method: "POST", body: formData })
+  fetch('/user_change', { method: "POST", body: formData })
     .then((res) => res.json())
     .then((data) => {
       location.reload();
     });
 }
-
+// 웹페이지 경로
 function total() {
   window.open('/statistics', target = "_self")
 }
@@ -44,4 +44,32 @@ function ref_reg() {
 function out_index() {
   window.open('/out_index', target = "_self")
 }
+function report() {
+  window.open('/report', target = "_self")
+}
+function make_reagent() {
+  window.open('/make_reagent', target = "_self")
+}
+function out_device() {
+  window.open('/out_device', target = "_self")
+}
+function admin() {
+  window.open('/admin', target = "_self")
+}
+
+
+// datalist 시약명 검색
+function reagent() {
+  fetch('/reagent').then((res)=> res.json()).then((data) => {
+    let rows = data['result']
+    $("#reagent").empty()
+    rows.forEach((a) => {
+      let name = a["name"]
+      let temp_html = `<option value="${name}">`;
+      $("#reagent").append(temp_html);
+    })
+  })
+}
+
+
 

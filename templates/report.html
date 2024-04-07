@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="/static/script.js"></script>
+  <script src="/static/jquery-3.7.1.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm"
+    crossorigin="anonymous"></script>
+
+  <link rel="icon" type="image/x-icon" href="/static.favicon.ico">
+
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" type="text/css" href="/static/styles.css">
+  <title>시약 현황</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR&display=swap');
+    @media print {
+
+      .print-button,
+      .back-button {
+        display: none;
+        /* 출력 시 버튼 감춤 */
+      }
+    }
+  </style>
+
+
+  <script>
+    // 날짜 스크립트
+    $(document).ready(function () {
+      // 기본날짜
+      fetch('/current_date').then((res) => res.json()).then((data) => {
+        console.log(data)
+        let start = data["start"];
+        let today = data['end'];
+        // $("#date").val(today);
+        $("#start").val(start);
+        $("#end").val(today);
+        // $("#out_date_manual").val(today);
+        instrument_and_user_list();
+        $("#content-container").empty();
+
+
+      })
+    });
+
+    function printPage() {
+      // 프린트가 종료될 때 실행되는 코드
+      window.onafterprint = function () {
+        // 프린트가 종료되면 버튼을 다시 보이게 합니다.
+        document.querySelector('.print-button').style.display = 'block';
+        document.querySelector('.back-button').style.display = 'block';
+      };
+
+      // 브라우저의 인쇄 다이얼로그를 열기
+      window.print();
+    }
+
+    function goBack() {
+      // 뒤로가기
+      window.location.reload();
+    }
+    // 장비명 스크립트
+    function instrument_and_user_list() {
+      fetch('/instrument_and_user_list').then((res) => res.json()).then((data) => {
+        let rows = data['instrument']
+        console.log(rows)
+        let rows2 = data['user']
+
+        rows.forEach((b) => {
+          let instrument1 = b["instrument"]
+          // let instrument1 = b[0]
+          let temp_html = `<option value="${instrument1}" >${instrument1}</option>`;
+          $("#instrument").append(temp_html);
+          $("#instrument_search").append(temp_html);
+          $("#instrument_manual_search").append(temp_html);
+        })
+        $("#user").empty()
+        let temp_html = `<option selected value="{{ user_info['username'] }}">{{ user_info['name'] }}({{ user_info['username'] }})</option>`
+        $("#user").append(temp_html)
+        rows2.forEach((b) => {
+          let username = b["username"]
+          let name = b["name"]
+          // let instrument1 = b[0]
+          let temp_html = `<option value="${username}" >${name}(${username})</option>`;
+          $("#user").append(temp_html);
+
+        });
+      });
+    }
+    function report_type() {
+      var report_select = document.getElementById("report_select").value;
+      console.log(report_select)
+      if (report_select == "total") {
+        print_report();
+      }
+      else {
+        print_maked_report()
+      }
+    }
+
+    function enterkey() {
+      if (window.event.keyCode == 13) {
+
+        // 엔터키가 눌렸을 때 실행할 내용
+        out_order();
+      }
+    }
+    function enterkey2() {
+      if (window.event.keyCode == 13) {
+
+        // 엔터키가 눌렸을 때 실행할 내용
+        save();
+      }
+    }
+    function print_maked_report() {
+      const start = document.getElementById('start').value;
+      const end = document.getElementById('end').value;
+      const instrument_search1 = document.getElementById('instrument_search').value;
+      let html_temp = `
+    <div class="a4">
+      <div class="fixed-div">
+        <div class="reagent">
+          <table width="100%">
+            <tr>
+              <td width="50%">
+                <h1>제조물질 관리대장 </h1>
+              </td>
+              <td rowspan="2">
+              </td>
+            </tr>
+            <tr style="text-align: right;">
+              <td width="70%"></td>
+              <td>
+              <table id = "sign" width = "100%" >
+                <tr>
+                  <td><h5>담당자</h5></td>
+                  <td><h5>팀  장</h5></td>
+                  <td><h5>과  장</h5></td>
+                </tr>
+                <tr height = "60px">
+                  <td> </td>
+                  <td> </td>
+                  <td> </td>
+                </td>
+              </table>
+              </td>
+            </tr>
+          </table>
+        </div>
+        <div class="fixed-div" id="content-container">
+          <table  class="table table-striped caption-top table-bordered table-sm" width="100%" style="margin-bottom: 0;">
+                <caption>기간: ${start} ~ ${end}</caption
+                <caption>장비명: ${instrument_search1}</caption>
+                  <thead>
+                      <tr width="100%">
+                          <th scope="col">입고일</th>
+                          <th scope="col">시약명</th>
+                          <th scope="col">Lot.No</th>
+                          <th scope="col">유효기간</th>
+                          <th scope="col">제조유효기간</th>
+                          <th scope="col">제조일</th>
+                          <th scope="col">종료일</th>
+                          <th scope="col">잔량</th>
+                          <th scope="col">제조자</th>
+                          <th scope="col">비고</th>
+                        
+                          
+                      </tr>
+                  </thead>
+                  <tbody id="content-container_table">
+                      
+                      
+                  </tbody>
+                </table>
+        </div>
+
+      </div>
+    </div>
+      `
+      $("#print_div").empty()
+      $("#print_div").append(html_temp);
+      let formData = new FormData();
+      formData.append("start", start);
+      formData.append("end", end);
+      formData.append("instrument", instrument_search1)
+      fetch('/print_maked_reagent', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+        console.log(data)
+        let rows = data['result']
+        $("#content-container_table").empty()
+        rows.forEach((a) => {
+          let in_date = a['in_date'].substr(2);
+          let name = a['name']
+          let lot = a['lot']
+          let exp = a['exp'].substr(2)
+          let make_onboard_date = a['make_onboard_date'].substr(2)
+          let make_date = a['make_date'].substr(2)
+          let close_date = a['close_date']
+          let quantity = a['quantity']
+          let total_ea = a['total_ea']
+          let remain_bottle = total_ea - quantity
+          let remain = a['remain']
+          let make_user = a['make_user']
+          let comment = (a['comment'] === null || a['comment'].trim() === "") ? "" : a['comment']
+          let reagent_comment = (a['reagent_comment'] === null || a['reagent_comment'].trim() === "") ? "" : a['reagent_comment']
+          var total_comment = comment + '\n' + reagent_comment
+
+          let temp_html = `<tr>
+        <td>${in_date}</td>
+        <td>${name}</td>
+        <td>${lot}</td>
+        <td>${exp}</td>
+        <td>${make_onboard_date}</td>
+        <td>${make_date}</td>
+        <td>${close_date ? close_date.substr(2) : '-'}</td>
+        <td>${remain_bottle}/${total_ea}(${remain})</td>
+        <td>${make_user}</td>
+        <td>${total_comment}</td>
+          </tr>
+        `
+          $("#content-container_table").append(temp_html)
+
+
+        });
+      })
+    }
+
+    function print_report() {
+      const start = document.getElementById('start').value;
+      const end = document.getElementById('end').value;
+      const instrument_search1 = document.getElementById('instrument_search').value;
+
+
+      $("#print_div").empty()
+      let html_temp = `
+  <div class="a4-front">
+        <div calss="fixed-div">
+    
+            <div style="text-align: center; margin-top: 5cm;"><h1>시약 입출고대장</h1></div>
+            <div style="text-align: center; margin-top: 11cm;" id="front_page">
+                <span><h4>기간: ${start} ~ ${end}</h4></span>
+                <span><h4>장비명: ${instrument_search1}</h4></span>
+                <table class="table table-bordered"
+                style="margin-left: auto; margin-right: auto;text-align: center; width: 10cm;">
+                <thead>
+                    <th width="50px">담당자</th>
+                    <th width="50px">팀 장</th>
+                    <th width="50px">과 장</th>
+                </thead>
+                <tbody>
+                    <td style="height: 2cm;">
+                        <p> </p>
+                        <p> </p>
+                        <p> </p>
+                    </td>
+                    <td></td>
+                    <td></td>
+                </tbody>
+                </table>
+            </div>
+          </div>
+    </div>
+    <div class="a4">
+      <div class="fixed-div">
+        <div class="reagent">
+          <table width="100%">
+            <tr>
+              <td width="50%">
+                <h1>시약 입출고내역 </h1>
+              </td>
+              <td rowspan="2">
+              </td>
+            </tr>
+          </table>
+        </div>
+        <div class="fixed-div">
+          <table  class="table table-striped caption-top table-bordered table-sm" width="100%" style="margin-bottom: 0;">
+                <caption>기간: ${start} ~ ${end}</caption
+                <caption>장비명: ${instrument_search1}</caption>
+                  <thead>
+                      <tr width="100%">
+                          <th scope="col">분류</th>
+                          <th scope="col">시약명</th>
+                          <th scope="col">사용중</th>
+                          <th scope="col">이월</th>
+                          <th scope="col">입고</th>
+                          <th scope="col">사용</th>
+                          <th scope="col">재고</th>
+                        
+                          
+                      </tr>
+                  </thead>
+                  <tbody id="content-container-total">
+                      
+                      
+                  </tbody>
+                </table>
+        </div>
+
+      </div>
+    </div>
+    <div class="a4">
+      <div class="fixed-div">
+        <div class="reagent">
+          <table width="100%">
+            <tr>
+              <td width="50%">
+                <h1>시약 입출고대장 </h1>
+              </td>
+              <td rowspan="2">
+              </td>
+            </tr>
+          </table>
+        </div>
+        <div class="fixed-div" id="content-container">
+        </div>
+
+      </div>
+    </div>
+  `
+      $("#print_div").append(html_temp)
+      let formData = new FormData();
+      formData.append("start", start);
+      formData.append("end", end);
+      formData.append("instrument", instrument_search1)
+      fetch('/total_print_total_month', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+        $("#content-container-total").empty();
+        let rows_total = data['result']
+        rows_total.forEach((a) => {
+          let name = a['name']
+          let code = a['code']
+          let early_month = a['early_month'];
+          let ea = a['ea'];
+          let used = a['used'];
+          let inventory = a['inventory']
+          let opened = a['opened']
+          let temp_html = `
+              <tr>
+                <td>${code}</td>
+                <td>${name}</td>
+                <td>${opened}</td>
+                <td>${early_month}</td>
+                <td>${ea}</td>
+                <td>${used}</td>
+                <td>${inventory}</td>
+              </tr>`
+          $("#content-container-total").append(temp_html);
+        })
+      })
+
+      fetch('/total_report_list', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+
+        $("#content-container").empty();
+        let rows = data['result']
+        rows.forEach((a) => {
+          var name = a["name"]
+          let instrument = a["instrument"]
+          let temp = a["temp"]
+          let volume = a["volume"]
+          let unit = a["unit"]
+          let manufact = a["manufact"]
+          let start1 = a["start"]
+          let end1 = a["end"]
+          var print_form = a["print_form"]
+          let name_short = a["name_short"]
+          let unit_stat = (unit === null || unit === 'null' || unit.trim() === '') ? '' : unit;
+          let manufact_stat = (manufact === null || manufact === 'null' || manufact.trim() === '') ? '' : manufact;
+          if (print_form == 'reagent') {
+            let temp_html = `
+              <table width="100%" style="margin-top: 30px;margin-bottom: 0px">
+                  <tr>
+                      <td width="50%">기간 : ${start1} ~ ${end1}</td>
+                      <td >장비명 : ${instrument}</td>
+                  </tr>
+              </table>
+              <table class="table table-bordered" width="100%" style="margin-bottom: 0px;border: 2px solid black; ">
+                <tr>
+                      <td width="8%">
+                          <span><b>시약명</b></span>
+                      </td>
+                      <td width="18%">
+                          <span><b>${name}<b></span>
+                      </td>
+                      <td width="6%">
+                          <span><b>규격</b></span>
+                      </td>
+                      <td width="7%">
+                          <span>${volume} ${unit_stat}</span>
+                      </td>
+                      <td width="10%">
+                          <span><b>보관방법</b></span>
+                      </td>
+                      <td width="6%">
+                          <span>${temp}</span>
+                      </td>
+                      <td width="10%">
+                          <span><b>조제방법</b></span>
+                      </td>
+                      <td width="15%" style="font-size: 13px;">
+                          <span>${manufact_stat}</span>
+                      </td>
+                  </tr>
+              </table>
+              <table  class="table table-striped caption-top table-sm" width="100%" style="margin-bottom: 0;">
+                <caption>출고 및 사용 내역</caption>
+                  <thead>
+                      <tr width="100%">
+                          <th scope="col">입고일</th>
+                          <th scope="col">Lot No.</th>
+                          <th scope="col">유효기간</th>
+                          <th scope="col">시작일</th>
+                          <th scope="col">종료일</th>
+                          <th scope="col">출고량</th>
+                          <th scope="col">입고자</th>
+                          <th scope="col">출고자</th>
+                          <th scope="col">비고</th>
+                          
+                      </tr>
+                  </thead>
+                  <tbody id="${name_short}">
+                      
+                      
+                  </tbody>
+                </table>
+                <table  class="table table-striped table-sm caption-top" width="100%">
+                <caption>입고 내역</caption>
+                <thead>
+                  <tr width="100%">
+                    <th scope="col">입고일</th>
+                    <th scope="col">Lot No.</th>
+                    <th scope="col">유효기간</th>
+                    <th scope="col">수량</th>
+                    <th scope="col">입고자</th>
+                    
+                  </tr>
+                </thead>
+                <tbody id="${name_short}_in">
+                  <tr>
+                      <td>23-09-05</td>
+                      <td>3151315</td>
+                      <td>24-05-31</td>
+                      <td>2</td>
+                      <td>김으뜸</td>
+                  </tr>
+                </tbody>
+                  <tfoot>
+                    <tr  >
+                      <td colspan="8" style="padding: 0;">
+                      <table  width="100%" id="${name_short}_stat">
+                        <tr>
+                          <td width="20%">
+                            <span><b>현황</b></span>
+                          </td>
+                          <td width="10%">
+                            <span><b>이월</b></span>
+                          </td>
+                          <td width="10%">
+                            <span>0</span>
+                          </td>
+                          <td width="10%">
+                            <span><b>입고</b></span>
+                          </td>
+                          <td width="10%">
+                            <span>0</span>
+                          </td>
+                          <td width="10%">
+                            <span><b>출고</b></span>
+                          </td>
+                          <td width="10%">
+                            <span>0</span>
+                          </td>
+                          <td width="10%">
+                            <span><b>재고</b></span>
+                          </td>
+                          <td width="10%">
+                            <span>0</span>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                      </tr>
+                          
+                        </tfoot>
+              </table>
+              `
+            $('#content-container').append(temp_html);
+
+            let formData = new FormData();
+            formData.append("start", start1);
+            formData.append("end", end1);
+            formData.append("name", name)
+            formData.append("name_short", name_short)
+
+
+            fetch('/total_print_detail', { method: "POST", body: formData, }).then((res) => res.json()).then((data2) => {
+              let rows2 = data2['result']
+              // console.log(name,instrument,temp,volume,manufact,start1,end1) 
+              // console.log(rows2)
+              $('#' + name_short).empty();
+              rows2.forEach((b) => {
+                let date = b["date"].substr(2);
+                let exp_date = b["exp_date"].substr(2);
+                let lot = b["lot"];
+                let out_date = b["out_date"].substr(2);
+
+                let close_date = b["close_date"]
+                let out_count = b["out_count"]
+                let in_user = b["in_user"];
+                let open_user = b["open_user"]
+                let comment = b["comment"];
+
+                let temp_html_detail = `
+              <tr>
+                          <td>${date}</td>
+                          <td>${lot}</td>
+                          <td>${exp_date}</td>
+                          <td>${out_date}</td>
+                          <td>${close_date ? close_date.substr(2) : '-'}</td>
+                          <td>${out_count}</td>
+                          <td>${in_user}</td>
+                          <td>${open_user}</td>
+                          <td>${comment ? comment : ''}</td>
+                          
+                      </tr>
+              `
+                $('#' + name_short).append(temp_html_detail);
+                console.log(date, exp_date, lot, out_date, in_user, open_user, comment)
+              })
+            })
+            fetch('/total_print_in_detail', { method: "POST", body: formData, }).then((res) => res.json()).then((data4) => {
+              let rows4 = data4['result']
+              // console.log(name,instrument,temp,volume,manufact,start1,end1) 
+              // console.log(rows2)
+              $('#' + name_short + '_in').empty();
+              rows4.forEach((b) => {
+                let date = b["date"].substr(2);
+                let exp_date = b["exp_date"].substr(2);
+                let lot = b["lot"];
+                let ea = b["ea"];
+                let in_user = b["in_user"];
+
+                let temp_html_detail = `
+              <tr>
+                          <td>${date}</td>
+                          <td>${lot}</td>
+                          <td>${exp_date}</td>
+                          <td>${ea}</td>
+                          <td>${in_user}</td>
+                          
+                      </tr>
+              `
+                $('#' + name_short + '_in').append(temp_html_detail);
+                // console.log(date, exp_date, lot, out_date, in_user, open_user, comment)
+              })
+            })
+            // $('#content-container').append(temp_html);
+
+            fetch('/total_print_total', { method: "POST", body: formData, }).then((res) => res.json()).then((data3) => {
+              let rows3 = data3['result']
+              // console.log(name,instrument,temp,volume,manufact,start1,end1) 
+              console.log(rows3)
+              $('#' + name_short + '_stat').empty();
+              rows3.forEach((c) => {
+                let early_month = c['early_month'];
+                let ea = c['ea'];
+                let used = c['used'];
+                let inventory = c['inventory']
+                let opened = c['opened']
+                let temp_html_stat = `
+              <tr style="border-collapse: collapse; border: 1px solid lightgray;">
+                          <td width="10%">
+                            <span><b>사용중</b></span>
+                          </td>
+                          <td width="10%">
+                            <span>${opened}</span>
+                          </td>
+                          <td width="10%">
+                            <span><b>이월</b></span>
+                          </td>
+                          <td width="10%">
+                            <span>${early_month}</span>
+                          </td>
+                          <td width="10%">
+                            <span><b>입고</b></span>
+                          </td>
+                          <td width="10%">
+                            <span>${ea}</span>
+                          </td>
+                          <td width="10%">
+                            <span><b>출고</b></span>
+                          </td>
+                          <td width="10%">
+                            <span>${used}</span>
+                          </td>
+                          <td width="10%">
+                            <span><b>재고</b></span>
+                          </td>
+                          <td width="10%">
+                            <span>${inventory}</span>
+                          </td>
+                        </tr>
+              `
+                $('#' + name_short + '_stat').append(temp_html_stat);
+              })
+            });
+          }
+          else {
+            let temp_html = `
+              <table width="100%" style="margin-top: 30px;margin-bottom: 0px">
+                  <tr>
+                      <td width="50%">기간 : ${start1} ~ ${end1}</td>
+                      <td >장비명 : ${instrument}</td>
+                  </tr>
+              </table>
+              <table class="table table-bordered" width="100%" style="margin-bottom: 0px;border: 2px solid black; ">
+                <tr>
+                      <td width="8%">
+                          <span><b>시약명</b></span>
+                      </td>
+                      <td width="18%">
+                          <span><b>${name}<b></span>
+                      </td>
+                      <td width="6%">
+                          <span><b>규격</b></span>
+                      </td>
+                      <td width="7%">
+                          <span>${volume} ${unit_stat}</span>
+                      </td>
+                      <td width="10%">
+                          <span><b>보관방법</b></span>
+                      </td>
+                      <td width="6%">
+                          <span>${temp}</span>
+                      </td>
+                      <td width="10%">
+                          <span><b>조제방법</b></span>
+                      </td>
+                      <td width="15%" style="font-size: 13px;">
+                          <span>${manufact_stat}</span>
+                      </td>
+                  </tr>
+              </table>
+              <table  class="table table-striped caption-top table-sm" width="100%" style="margin-bottom: 0;">
+                <caption>출고 및 사용 내역</caption>
+                  <thead>
+                      <tr width="100%">
+                          <th scope="col">입고일</th>
+                          <th scope="col">Lot No.</th>
+                          <th scope="col">유효기간</th>
+                          <th scope="col">시작일</th>
+                          <th scope="col">종료일</th>
+                          <th scope="col">잔량(재고)</th>
+                          <th scope="col">입고자</th>
+                          <th scope="col">출고자</th>
+                          <th scope="col">비고</th>
+                          
+                      </tr>
+                  </thead>
+                  <tbody id="${name_short}">
+                      
+                      
+                  </tbody>
+                </table>
+                <table  class="table table-striped table-sm caption-top" width="100%">
+                <caption>입고 내역</caption>
+                <thead>
+                  <tr width="100%">
+                    <th scope="col">입고일</th>
+                    <th scope="col">Lot No.</th>
+                    <th scope="col">유효기간</th>
+                    <th scope="col">수량</th>
+                    <th scope="col">입고자</th>
+                    
+                  </tr>
+                </thead>
+                <tbody id="${name_short}_in">
+                  <tr>
+                      <td>23-09-05</td>
+                      <td>3151315</td>
+                      <td>24-05-31</td>
+                      <td>2</td>
+                      <td>김으뜸</td>
+                  </tr>
+                </tbody>
+                  <tfoot>
+                    <tr  >
+                      <td colspan="8" style="padding: 0;">
+                      <table  width="100%" id="${name_short}_stat">
+                        <tr>
+                          <td width="20%">
+                            <span><b>현황</b></span>
+                          </td>
+                          <td width="10%">
+                            <span><b>이월</b></span>
+                          </td>
+                          <td width="10%">
+                            <span>0</span>
+                          </td>
+                          <td width="10%">
+                            <span><b>입고</b></span>
+                          </td>
+                          <td width="10%">
+                            <span>0</span>
+                          </td>
+                          <td width="10%">
+                            <span><b>출고</b></span>
+                          </td>
+                          <td width="10%">
+                            <span>0</span>
+                          </td>
+                          <td width="10%">
+                            <span><b>재고</b></span>
+                          </td>
+                          <td width="10%">
+                            <span>0</span>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                      </tr>
+                          
+                        </tfoot>
+              </table>
+              `
+            $('#content-container').append(temp_html);
+
+            let formData = new FormData();
+            formData.append("start", start1);
+            formData.append("end", end1);
+            formData.append("name", name)
+            formData.append("name_short", name_short)
+
+
+            fetch('/total_print_detail2', { method: "POST", body: formData, }).then((res) => res.json()).then((data2) => {
+              let rows2 = data2['result']
+              // console.log(name,instrument,temp,volume,manufact,start1,end1) 
+              // console.log(rows2)
+              $('#' + name_short).empty();
+              rows2.forEach((b) => {
+                let date = b["date"]
+                let exp_date = b["exp_date"].substr(2);
+                let lot = b["lot"];
+                let out_date = b["out_date"].substr(2);
+                let total_ea = b["total_ea"]
+                let quantity = b["quantity"]
+                let reagent_remain = total_ea - quantity
+                let remain = b["remain"]
+
+                let close_date = b["close_date"]
+                // let out_count = b["out_count"]
+                let in_user = b["in_user"];
+                let open_user = b["open_user"]
+                let comment = b["comment"];
+
+                let temp_html_detail = `
+              <tr>
+                          <td>${date ? date.substr(2) : '-'}</td>
+                          <td>${lot}</td>
+                          <td>${exp_date}</td>
+                          <td>${out_date}</td>
+                          <td>${close_date ? close_date.substr(2) : '-'}</td>
+                          <td>${reagent_remain}/${total_ea}(${remain})</td>
+                          <td>${in_user}</td>
+                          <td>${open_user}</td>
+                          <td>${comment ? comment : ''}</td>
+                          
+                      </tr>
+              `
+                $('#' + name_short).append(temp_html_detail);
+                console.log(date, exp_date, lot, out_date, in_user, open_user, comment)
+              })
+            })
+            fetch('/total_print_in_detail', { method: "POST", body: formData, }).then((res) => res.json()).then((data4) => {
+              let rows4 = data4['result']
+              // console.log(name,instrument,temp,volume,manufact,start1,end1) 
+              // console.log(rows2)
+              $('#' + name_short + '_in').empty();
+              rows4.forEach((b) => {
+                let date = b["date"].substr(2);
+                let exp_date = b["exp_date"].substr(2);
+                let lot = b["lot"];
+                let ea = b["ea"];
+                let in_user = b["in_user"];
+
+                let temp_html_detail = `
+              <tr>
+                          <td>${date}</td>
+                          <td>${lot}</td>
+                          <td>${exp_date}</td>
+                          <td>${ea}</td>
+                          <td>${in_user}</td>
+                          
+                      </tr>
+              `
+                $('#' + name_short + '_in').append(temp_html_detail);
+                // console.log(date, exp_date, lot, out_date, in_user, open_user, comment)
+              })
+            })
+            // $('#content-container').append(temp_html);
+
+            fetch('/total_print_total', { method: "POST", body: formData, }).then((res) => res.json()).then((data3) => {
+              let rows3 = data3['result']
+              // console.log(name,instrument,temp,volume,manufact,start1,end1) 
+              console.log(rows3)
+              $('#' + name_short + '_stat').empty();
+              rows3.forEach((c) => {
+                let early_month = c['early_month'];
+                let ea = c['ea'];
+                let used = c['used'];
+                let inventory = c['inventory']
+                let opened = c['opened']
+                let temp_html_stat = `
+              <tr style="border-collapse: collapse; border: 1px solid lightgray;">
+                          <td width="10%">
+                            <span><b>사용중</b></span>
+                          </td>
+                          <td width="10%">
+                            <span>${opened}</span>
+                          </td>
+                          <td width="10%">
+                            <span><b>이월</b></span>
+                          </td>
+                          <td width="10%">
+                            <span>${early_month}</span>
+                          </td>
+                          <td width="10%">
+                            <span><b>입고</b></span>
+                          </td>
+                          <td width="10%">
+                            <span>${ea}</span>
+                          </td>
+                          <td width="10%">
+                            <span><b>출고</b></span>
+                          </td>
+                          <td width="10%">
+                            <span>${used}</span>
+                          </td>
+                          <td width="10%">
+                            <span><b>재고</b></span>
+                          </td>
+                          <td width="10%">
+                            <span>${inventory}</span>
+                          </td>
+                        </tr>
+              `
+                $('#' + name_short + '_stat').append(temp_html_stat);
+              })
+            });
+
+          }
+
+        })
+
+      });
+
+    }
+
+    function print_page(divName) {
+      var printContents = document.getElementById(divName).innerHTML;
+      var originalContents = document.body.innerHTML;
+
+      document.body.innerHTML = printContents;
+
+      window.print();
+
+      document.body.innerHTML = originalContents;
+    }
+  </script>
+
+</head>
+
+<body>
+
+  <div class="order" id="order">
+    <!-- navigation -->
+    <div>
+      <nav class="navbar navbar-expand-lg bg-light">
+        <div class="container-fluid">
+          <a class="navbar-brand" href="#">시약현황출력</a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+            aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarNav" width="70%">
+            <ul class="navbar-nav">
+              <li class="nav-item">
+                <a class="nav-link" href="#" onclick="home()">입고</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#" onclick="out_index()">출고</a>
+              </li>
+              <!-- <li class="nav-item">
+                <a class="nav-link" href="#" onclick="make_reagent()">제조</a>
+              </li> -->
+              <li class="nav-item">
+                <a class="nav-link" aria-current="page" href="#" onclick="total()">현황</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#" onclick="ref_reg()">등록</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link active" href="#" onclick="report()">보고</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#" onclick="admin()">사용자관리</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <form class="container-fluid">
+          <div class="input-group">
+            <span class="input-group-text" id="basic-addon1">사용자</span>
+            <select class="form-select form-select-sm" aria-label=".form-select-sm example" id="user"
+              onchange="user_change()">
+              <option selected value="default">{{ user_info['name'] }}</option>
+            </select>
+            <span>
+              <type="button" class="btn btn-warning btn" onclick="logout()">Logout</button>
+            </span>
+          </div>
+        </form>
+      </nav>
+    </div>
+    <div class="order-info">
+      <div class="input-group input-group-sm mb-3">
+        <span class="input-group-text">장부선택</span>
+        <select id="report_select" class="form-select">
+          <!-- <option selected value="">장부선택</option> -->
+          <option selected value="total">시약 입출고대장</option>
+          <option value="make_reagent">제조물질 관리대장</option>
+        </select>
+        <span class="input-group-text">장비명</span>
+        <select id="instrument_search" class="form-select">
+          <option selected value="all">전체</option>
+        </select>
+
+        <span class="input-group-text">기간</span>
+        <input id="start" type="date" class="form-control" />
+        <span class="input-group-text">~</span>
+        <input id="end" type="date" class="form-control" />
+        <type="button" class="btn btn-warning btn-sm" onclick="report_type()">조회</button>
+          <type="button" class="btn btn-warning btn-sm" onclick="print_page('print_div')">인쇄</button>
+      </div>
+    </div>
+
+
+    <div class="fixed-div" id="print_div">
+      <div class="reagent">
+        <table width="100%">
+          <tr>
+            <td width="50%">
+              <h1>시약 입출고대장 </h1>
+            </td>
+            <td rowspan="2">
+
+            </td>
+          </tr>
+
+        </table>
+
+        <div class="print_table" id="content-container">
+          <table width="100%">
+            <tr>
+              <td width="50%">기간 : 2023-11-01 ~ 2023-11-30</td>
+              <td>장비명 : c702</td>
+            </tr>
+          </table>
+          <table class="table table-bordered" width="100%">
+
+            <tr>
+              <td width="8%">
+                <span><b>시약명</b></span>
+              </td>
+              <td width="18%">
+                <span>ALP 213123</span>
+              </td>
+              <td width="6%">
+                <span><b>규격</b></span>
+              </td>
+              <td width="7%">
+                <span>1000T</span>
+              </td>
+              <td width="10%">
+                <span><b>보관방법</b></span>
+              </td>
+              <td width="6%">
+                <span>냉장</span>
+              </td>
+              <td width="10%">
+                <span><b>조제방법</b></span>
+              </td>
+              <td width="15%" style="font-size: 13px;">
+                <span>상품화시약 (액상)</span>
+              </td>
+            </tr>
+          </table>
+
+          <table class="table table-striped" width="100%">
+            <thead>
+              <tr width="100%">
+                <th scope="col">입고일</th>
+                <th scope="col">Lot No.</th>
+                <th scope="col">유효기간</th>
+                <th scope="col">시작일</th>
+                <th scope="col">종료일</th>
+                <th scope="col">입고자</th>
+                <th scope="col">출고자</th>
+                <th scope="col">비고</th>
+                <!-- 다른 열 추가 가능 -->
+              </tr>
+            </thead>
+            <tbody id="report_detail">
+              <!-- 서버에서 받은 데이터를 표 내에 추가 -->
+              <tr>
+                <td>23-09-05</td>
+                <td>3151315</td>
+                <td>24-05-31</td>
+                <td>23-11-05</td>
+                <td>23-11-15</td>
+                <td>김으뜸</td>
+                <td>test</td>
+                <td>테스트</td>
+                <!-- 다른 열의 데이터를 추가 -->
+              </tr>
+              <tr>
+                <td>23-09-05</td>
+                <td>3151315</td>
+                <td>24-05-31</td>
+                <td>23-11-05</td>
+                <td>23-11-15</td>
+                <td>김으뜸</td>
+                <td>test</td>
+                <td></td>
+                <!-- 다른 열의 데이터를 추가 -->
+              </tr>
+              <tr>
+                <td>23-09-05</td>
+                <td>3251315</td>
+                <td>24-05-31</td>
+                <td>23-11-05</td>
+                <td>23-11-15</td>
+                <td>김으뜸</td>
+                <td>test</td>
+                <td></td>
+                <!-- 다른 열의 데이터를 추가 -->
+              </tr>
+              <tr>
+                <td>23-09-05</td>
+                <td>3151315</td>
+                <td>24-05-31</td>
+                <td>23-11-05</td>
+                <td>23-11-15</td>
+                <td>김으뜸</td>
+                <td>test</td>
+                <td></td>
+                <!-- 다른 열의 데이터를 추가 -->
+              </tr>
+            </tbody>
+          </table>
+
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+</body>

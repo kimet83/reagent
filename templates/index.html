@@ -7,13 +7,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="/static/script.js"></script>
   <script src="/static/jquery-3.7.1.min.js"></script>
-  <link href="/static/bootstrap-5.3.2/css/bootstrap.min.css" rel="stylesheet"
-    integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-  <script src="/static/bootstrap-5.3.2/js/bootstrap.bundle.min.js"
-    integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm"
     crossorigin="anonymous"></script>
 
-    <link rel="icon" type="image/x-icon" href="/static.favicon.ico">
+  <link rel="icon" type="image/x-icon" href="/static.favicon.ico">
 
   <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" type="text/css" href="/static/styles.css">
@@ -36,13 +36,14 @@
         $("#start").val(today);
         $("#end").val(today);
         $("#date_manual").val(today);
-        select();
-        search1();
+        instrument_and_user_list();
+        in_reagent_search();
+        reagent();
       })
     });
 
-    function select() {
-      fetch('/select').then((res) => res.json()).then((data) => {
+    function instrument_and_user_list() {
+      fetch('/instrument_and_user_list').then((res) => res.json()).then((data) => {
         let rows = data['instrument']
         console.log(rows)
         let rows2 = data['user']
@@ -69,7 +70,7 @@
       });
     }
     function select2() {
-      fetch('/select').then((res) => res.json()).then((data) => {
+      fetch('/instrument_and_user_list').then((res) => res.json()).then((data) => {
         let rows2 = data['instrument']
 
         rows2.forEach((b) => {
@@ -145,14 +146,64 @@
         rows.forEach((c) => {
           let name = c["name"]
           let gtin = c["gtin"]
-          let temp_html = `<option value="${gtin}" >${name}</option>`;
+          let temp_html = `<option value="${name}" >${name}</option>`;
           $("#reagent_search").append(temp_html);
         });
       });
-      search1();
+      in_reagent_search();
     };
+    function reagent_select() {
+      let reagent_select = document.getElementById("name_manual_search");
+      if (reagent_select.value === "") {
+        // alert("시약을 선택해주세요");
+        reagent_select.focus();
+        return false;
+      }
+      var selectedValue = reagent_select.value;
+      let formData = new FormData();
+      let instrument = $("#instrument_manual_search").val();
+      formData.append("gtin", selectedValue);
+      formData.append("instrument_select", instrument);
 
-    function save_order() {
+      console.log(selectedValue)
+
+      fetch('/reagent_select2', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+
+        $("#lot_datalist").empty();
+        // temp_html = `<option selected value="">LOT</option>`
+        // $("#lot").append(temp_html);
+
+        // let names = data['result']
+        // let name = names[0].name;
+        let rows = data['result']
+        
+        let etc = rows[0]["etc"];
+        console.log(rows,etc)
+        let howinreagent = etc !== null ? etc : '';
+        $("#etc_manual").val(howinreagent);
+        rows.forEach((c) => {
+          let lot = c["lot"]
+          let temp_html = `<option value="${lot}" >`;
+          $("#lot_datalist").append(temp_html);
+        });
+      });
+    };
+    function lot_select() {
+      let lot = document.getElementById("lot_manual")
+      let gtin = document.getElementById("name_manual_search")
+      let formData = new FormData();
+      formData.append("gtin", gtin.value);
+      formData.append("lot", lot.value);
+      console.log(lot.value,gtin.value)
+      fetch('/lot_search', { method: "POST", body: formData, }).then((res) => res.json()).then((data)=> {
+        let row = data['result']
+        let exp = row[0]['exp_date']
+        console.log(row,exp)
+        $("#expdate_manual").val(exp);
+      })
+    }
+
+    function in_reagent_barcode() {
       var input = document.getElementById("barcode");
       if (input.value === "") {
         alert("바코드를 입력해주세요.");
@@ -173,130 +224,131 @@
       // formData.append("type_give", type);
 
 
-      fetch('/barcode', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+      fetch('/in_reagent_barcode', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
         // console.log(data);
         let rows = data['info'][0]
         console.log(rows)
         let rows2 = data['barcode']
         console.log(rows2)
-        
-        if (rows==null) {
-          var name = null;
-        var lot = rows2['lot'];
-        var exp = rows2['exp'];
-        var gtin = rows2['gtin'];
-        var instrument = null
-        var code = null
-        var temp = null
-        var volume = null
-        var total_ea = null
-        var ref = rows2['ref'];
-        var onboard = null
-        
+
+        if (rows == null) {
+          var name = '';
+          var lot = rows2['lot'];
+          var exp = rows2['exp'];
+          var gtin = rows2['gtin'];
+          var instrument = ''
+          var code = ''
+          var temp = ''
+          var volume = ''
+          var unit = ''
+          var total_ea = ''
+          // var ref = rows2['ref'];
+          var onboard = ''
+          var make_onboard = 0
+          var etc = ''
+          var print_form = ''
+          var manufact =''
+
         }
         else {
           var name = rows['name'];
-        var lot = rows2['lot'];
-        var exp = rows2['exp'];
-        var gtin = rows2['gtin'];
-        var instrument = rows['instrument']
-        var code = rows['code'];
-        var temp = rows['temp'];
-        var volume = rows['volume'];
-        var total_ea = rows['total_ea'];
-        var ref = rows2['ref'];
-        var onboard = rows['onboard']
+          var lot = rows2['lot'];
+          var exp = rows2['exp'];
+          var gtin = rows2['gtin'];
+          var instrument = rows['instrument']
+          var code = rows['code'];
+          var temp = rows['temp'];
+          var volume = rows['volume'];
+          var unit = rows['unit'];
+          var total_ea = rows['total_ea'];
+          var onboard = rows['onboard']
+          var make_onboard = rows['make_onboard_day']
+          var etc = rows['etc']
+          var print_form = rows['print_form']
+          var manufact = rows['manufact']
+
+        }
         
-      }
-        if (ref != 'other') {
-          $("#nameform").empty();
-
-          let temp_html_name = `<label for="name" class="form-label"><a href="https://elabdoc-prod.roche.com/eLD/web/kr/ko/products?searchTerm=${ref}&catalog=ProductCatalog&orderBy=Relevance" target="_blank">시약명</a></label>
-            <input type="text" class="form-control" value="${name}" id="name">`
-          $("#nameform").append(temp_html_name);
-          $("#ref_save").empty();
-          let temp_html = `<span>
-              <type="button" class="btn btn-warning mybtn" onclick="save(${ref})">입고</button>
-            </span>`
-          $("#ref_save").append(temp_html);
-        }
-        else {
-          $("#nameform").empty();
-
-          let temp_html_name = `<label for="name" class="form-label">시약명</label>
-    <input type="text" class="form-control" value="${name}" id="name">`
-          $("#nameform").append(temp_html_name);
-        }
-
-        $("#lotform").empty();
-        let temp_html_lot = `<label for="lot" class="form-label">Lot No.</label>
-            <input type="text" class="form-control" id="lot" value="${lot}" >`
-        $("#lotform").append(temp_html_lot);
-
-        $("#expform").empty();
-        let temp_html_exp = `<label for="exp" class="form-label">유효기간</label>
-            <input type="date" class="form-control form-control-sm" value="${exp}" id="exp" >`
-        $("#expform").append(temp_html_exp);
-
-        $("#gtinform").empty();
-        let temp_html_gtin = `<label for="gtin" class="form-label">등록번호</label>
-              <input type="text" class="form-control" value="${gtin}" id="gtin" >`
-        $("#gtinform").append(temp_html_gtin);
-
-        $("#instrument").empty();
-        let temp_html_instrument = `<option selected value="${instrument}">${instrument}</option>`
-        $("#instrument").append(temp_html_instrument);
-
-        $("#codeform").empty();
-        let temp_html_code = `<label for="code" class="form-label">분류</label>
-              <select id="code" class="form-select">
-                <option value="${code}" selected>${code}</option>
-                <option value="시약">시약</option>
-      <option value="Cal/QC">Cal/QC</option>
-      <option value="보조시약">보조시약</option>`
-        $("#codeform").append(temp_html_code);
-
-        $("#temp").empty();
-        let temp_html_temp = `<option selected value="${temp}">${temp}</option>
-                <option value="냉장">냉장</option>
-                <option value="실온">실온</option>
-                <option value="냉동">냉동</option>`
-        $("#temp").append(temp_html_temp);
-
-        $("#volumeform").empty();
-        let temp_html_volume = `<label for="volumn" class="form-label">테스트수</label>
-              <input type="number" class="form-control" value="${volume}" id="volume">`
-        $("#volumeform").append(temp_html_volume);
-
-        $("#total_eaform").empty();
-        let temp_html_total_ea = `<label for="total_ea" class="form-label">포장수량</label>
-              <input type="number" class="form-control" value="${total_ea}" id="total_ea">`
-        $("#total_eaform").append(temp_html_total_ea);
-
-        $("#onboardform").empty();
-        let temp_html_onboard = `           
-              <label for="total_ea" class="form-label">기본장착수량</label>
-              <input type="number" class="form-control" value="${onboard}" id="onboard">
-
-            `
-        $("#onboardform").append(temp_html_onboard);
-
-
-        select();
-
-
+          $("#name").val(name);
+          $("#lot").val(lot);
+          $("#exp").val(exp);
+          $("#gtin").val(gtin);
+          $("#instrument").val(instrument)
+          $("#code").val(code);
+          $("#temp").val(temp);
+          $("#volume").val(volume);
+          $("#unit").val(unit);
+          $("#total_ea").val(total_ea);
+          $("#onboard").val(onboard);
+          $("#make_onboard").val(make_onboard);
+          $("#etc").val(etc);
+          $("#print_form").val(print_form);
+          $("#manufact").val(manufact);
         var inputbarcode = document.getElementById("barcode");
         inputbarcode.value = "";
         var inputea = document.getElementById("ea");
         inputea.focus();
 
-        search1();
+        in_reagent_search();
       });
     }
-    function save(ref) {
+
+    function reagent_info() {
+      let name_value = document.getElementById("name");
+      let name = name_value.value
+      let gtin = 'none'
+      let formData = new FormData();
+      formData.append("name",name);
+      formData.append("gtin",gtin);
+      fetch('/reagent_info', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+        
+
+        detail = data[0]
+
+        if (detail == null) {
+          
+        }
+        else {
+          let instrument = detail['instrument']
+          let code = detail['code'];
+          let temp = detail['temp'];
+          let volume = detail['volume'];
+          let total_ea = detail['total_ea'];
+          let onboard = detail['onboard']
+          let unit = detail['unit'];
+          let make_onboard = detail['make_onboard_day']
+          let manufact = detail['manufact']
+          let gtin_value = detail['gtin']
+          let etc = detail['etc']
+          var print_form = detail['print_form']
+          
+            let howinreagent = etc !== null ? etc : '';
+          console.log(data)
+          // console.log(name, instrument, code, temp, volume, total_ea, onboard, gtin)
+          
+          $("#instrument").val(instrument);
+          $("#code").val(code);
+          $("#temp").val(temp);
+          $("#volume").val(volume);
+          $("#unit").val(unit);
+          $("#total_ea").val(total_ea);
+          $("#onboard").val(onboard);
+          $("#make_onboard").val(make_onboard)
+          $("#manufact").val(manufact);
+          $("#etc").val(howinreagent);
+          $("#print_form").val(print_form);
+         
+         
+        }
+      })
+
+    }
+
+
+    function save() {
       let input3 = document.getElementById("ea");
-      if (input3.value === "") {
-        alert("입고 수량을 입력해 주세요.");
+      if (input3.value === "" || input3.value > 100) {
+        alert("입고 수량을 확인해 주세요.");
         input3.focus();
         return false;
       }
@@ -318,10 +370,16 @@
       let post_code = $("#code").val();
       let post_temp = $("#temp").val();
       let post_volume = $("#volume").val();
+      let post_unit = $("#unit").val();
       let post_total_ea = $("#total_ea").val();
       let post_onboard = $("#onboard").val();
+      let post_make_onboard = $("#make_onboard").val()
       let post_user = $("#user").val();
       let comment = $("#comment").val();
+      let manufact = $("#manufact").val();
+      let print_form = $("#print_form").val();
+      let name_short = post_name.replace(/ /g, '_').replace(/\//g, '_').replace(/&/g, '_').replace(/\./g, '_')
+      let etc = $("#etc").val();
 
       let formData = new FormData();
       formData.append("date_give", post_date);
@@ -334,239 +392,314 @@
       formData.append("code_give", post_code);
       formData.append("temp_give", post_temp);
       formData.append("volume_give", post_volume);
+      formData.append("unit", post_unit)
       formData.append("total_ea_give", post_total_ea);
       formData.append("onboard_give", post_onboard);
-      formData.append("ref", ref);
+      formData.append("etc", etc);
       formData.append("username", post_user);
       formData.append("comment", comment);
+      formData.append("make_onboard_day", post_make_onboard);
+      formData.append("manufact",manufact);
+      formData.append("print_form",print_form);
+      formData.append("name_short", name_short)
 
 
       fetch('/save', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
 
-        search1();
+        in_reagent_search();
       });
-      $("#detail").empty()
-      let temp_html = `<form class="row g-2" >
-
-<div class="col-md-5" id="nameform">
-  <label for="name" class="form-label">시약명</label>
-  <input type="text" class="form-control" id="name">
-</div>
-<div class="col-md-3" id="lotform">
-  <label for="lot" class="form-label">Lot No.</label>
-  <input type="text" class="form-control" id="lot"  >
-</div>
-<div class="col-md-3" id="expform">
-  <label for="exp" class="form-label">유효기간</label>
-  <input type="date" class="form-control form-control-sm" id="exp" >
-</div>
-<div class="col-md-1">
-  <label for="ea" class="form-label">입고량</label>
-  <input type="number" class="form-control" id="ea" onkeyup="enterkey2();">
-</div>
-<div class="col-md-12">
-  <span>
-    <type="button" class="btn btn-warning mybtn" onclick="save()">입고</button>
-  </span>
-</div>
-</form>
-<div class="detail">
-<form class="row g-2">
-
-  <div class="col-md-5" id="gtinform">
-    <label for="gtin" class="form-label">등록번호</label>
-    <input type="text" class="form-control" id="gtin" >
-  </div>
-  <div class="col-md-4" id="instrumentform">
-    <label for="instrument" class="form-label">장비명</label>
-    <select id="instrument" class="form-select">
-      <option selected>Choose...</option>
-
-    </select>
-  </div>
-  <div class="col-md-3" id="codeform">
-    <label for="code" class="form-label">분류</label>
-    <select id="code" class="form-select">
-      <option selected>Choose...</option>
-      <option value="시약">시약</option>
-      <option value="Cal/QC">Cal/QC</option>
-      <option value="보조시약">보조시약</option>
-
-    </select>
-  </div>
-  <div class="col-md-3" id="tempform">
-    <label for="temp" class="form-label">보관온도</label>
-    <select id="temp" class="form-select">
-      <option selected>Choose...</option>
-      <option value="냉장">냉장</option>
-      <option value="실온">실온</option>
-      <option value="냉동">냉동</option>
-    </select>
-  </div>
-  <div class="col-md-3" id="volumeform">
-    <label for="volumn" class="form-label">테스트수</label>
-    <input type="number" class="form-control" id="volume">
-
-  </div>
-  <div class="col-md-3" id="total_eaform">
-    <label for="total_ea" class="form-label">포장수량</label>
-    <input type="number" class="form-control" id="total_ea">
-
-  </div>
-  <div class="col-md-3" id="onboardform">
-              <label for="total_ea" class="form-label">기본장착수량</label>
-              <input type="number" class="form-control" id="onboard">
-
-            </div>
-            <div class="col-md-12" id="commentform">
-              <label for="total_ea" class="form-label">비고</label>
-              <input type="text" class="form-control" id="comment">
-
-            </div>
+      $("#name").val("");
+          $("#lot").val("");
+          $("#exp").val("");
+          $("#gtin").val("");
+          $("#instrument").val("")
+          $("#code").val("");
+          $("#temp").val("");
+          $("#volume").val("");
+          $("#unit").val("");
+          $("#total_ea").val("");
+          $("#onboard").val("");
+          $("#make_onboard").val("");
+          $("#etc").val("");
+          $("#ea").val(1);
+          $("#comment").val("");
+          $("#print_form").val("");
+          $("#manufact").val("");
 
 
-</form>`
-      $("#detail").append(temp_html);
-      select()
-      // console.log(post_gtin);
       var inputbarcode = document.getElementById("barcode");
-        inputbarcode.value = "";
-        input.focus();
+      inputbarcode.value = "";
+      input.focus();
+      in_reagent_search()
     }
 
-    function manual_save() {
-  // 필드의 id를 배열로 정의
-  const fieldIds = ["lot_manual", "name_manual_search", "date_manual", "expdate_manual", "ea_manual"];
+    function in_reagent_manual() {
+      // 필드의 id를 배열로 정의
+      const fieldIds = ["lot_manual", "name_manual_search", "date_manual", "expdate_manual", "ea_manual"];
 
-  // 필드가 비어있는지 확인하는 함수
-  function validateField(id, message) {
-    const inputField = document.getElementById(id);
-    const value = inputField.value;
-    if (!value) {
-      alert(message);
-      inputField.focus();
-      return false;
+      // 필드가 비어있는지 확인하는 함수
+      function validateField(id, message) {
+        const inputField = document.getElementById(id);
+        const value = inputField.value;
+        if (!value) {
+          alert(message);
+          inputField.focus();
+          return false;
+        }
+        return true;
+      }
+
+      // 필수 필드의 유효성을 검사
+      for (const fieldId of fieldIds) {
+        if (!validateField(fieldId, "입력해주세요.")) {
+          return;
+        }
+      }
+
+      // 나머지 데이터를 수집
+      const post_date = $("#date_manual").val();
+      const post_gtin = $("#name_manual_search").val();
+      const post_exp = $("#expdate_manual").val();
+      const post_lot = $("#lot_manual").val();
+      const post_ea = $("#ea_manual").val();
+      const post_user = $("#user").val();
+      const comment = $("#comment_manual").val();
+      const etc = $("#etc_manual").val();
+
+      // FormData 객체 생성
+      const formData = new FormData();
+      formData.append("date_give", post_date);
+      formData.append("gtin_give", post_gtin);
+      formData.append("exp_give", post_exp);
+      formData.append("lot_give", post_lot);
+      formData.append("ea_give", post_ea);
+      formData.append("username", post_user);
+      formData.append("comment", comment);
+      formData.append("etc",etc);
+
+      console.log(formData);
+
+      // 서버로 데이터 전송
+      fetch('/in_reagent_manual', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+        $("#modal").empty();
+        in_reagent_search();
+      });
+      var inputbarcode = document.getElementById("barcode");
+      inputbarcode.value = "";
+      input.focus();
     }
-    return true;
-  }
-
-  // 필수 필드의 유효성을 검사
-  for (const fieldId of fieldIds) {
-    if (!validateField(fieldId, "입력해주세요.")) {
-      return;
-    }
-  }
-
-  // 나머지 데이터를 수집
-  const post_date = $("#date_manual").val();
-  const post_gtin = $("#name_manual_search").val();
-  const post_exp = $("#expdate_manual").val();
-  const post_lot = $("#lot_manual").val();
-  const post_ea = $("#ea_manual").val();
-  const post_user = $("#user").val();
-  const comment = $("#comment_manual").val();
-
-  // FormData 객체 생성
-  const formData = new FormData();
-  formData.append("date_give", post_date);
-  formData.append("gtin_give", post_gtin);
-  formData.append("exp_give", post_exp);
-  formData.append("lot_give", post_lot);
-  formData.append("ea_give", post_ea);
-  formData.append("username", post_user);
-  formData.append("comment", comment);
-
-  console.log(formData);
-
-  // 서버로 데이터 전송
-  fetch('/save_m', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
-    $("#modal").empty();
-    search1();
-  });
-  var inputbarcode = document.getElementById("barcode");
-        inputbarcode.value = "";
-        input.focus();
-}
 
 
-    function search1(page=1) {
-  let start = $("#start").val();
-  let end = $("#end").val();
-  let instrument_search = document.getElementById("instrument_search").value;
-  let code_search = document.getElementById("code_search").value;
-  let reagent_search = document.getElementById("reagent_search").value;
-  let pages=$("#pages").val();
-  let formData = new FormData();
-  formData.append("start_give", start);
-  formData.append("end_give", end);
-  formData.append("instrument_give", instrument_search);
-  formData.append("code_give", code_search);
-  formData.append("gtin", reagent_search);
+    function in_reagent_search(page = 1) {
+      let start = $("#start").val();
+      let end = $("#end").val();
+      let instrument_search = document.getElementById("instrument_search").value;
+      let code_search = document.getElementById("code_search").value;
+      let reagent_search = document.getElementById("reagent_search").value;
+      // let pages = $("#pages").val();
+      let formData = new FormData();
+      formData.append("start_give", start);
+      formData.append("end_give", end);
+      formData.append("instrument_give", instrument_search);
+      formData.append("code_give", code_search);
+      formData.append("name", reagent_search);
 
-  fetch('/search', { method: "POST", body: formData })
-    .then((res) => res.json())
-    .then((data) => {
-      $("#order-box").empty();
-      let rows = data['result'];
-      let itemsPerPage = 8
-      let startIndex = (page - 1) * itemsPerPage;
-      let endIndex = startIndex + itemsPerPage;
-      let currentPageData = rows.slice(startIndex, endIndex);
+      fetch('/in_reagent_search', { method: "POST", body: formData })
+        .then((res) =>  {
+            if (!res.ok) {
+                throw new Error('Network response was not ok.');
+            }
+            return res.json();
+        })
+        .then((data) => {
+          $("#order-box").empty();
+          let rows = data['result'];
+          // let itemsPerPage = 16
+          // let startIndex = (page - 1) * itemsPerPage;
+          // let endIndex = startIndex + itemsPerPage;
+          // let currentPageData = rows.slice(startIndex, endIndex);
 
-      currentPageData.forEach((c) => {
-        let id = c["id"];
-        let in_date = c["date"].substr(2);
-        let name = c["name"];
-        let lot = c["lot"];
-        let exp = c["exp"].substr(2);
-        let ref = c["ref"];
-        let code = c["code"];
-        let out_date = c['out_date'];
-        let instrument = c['instrument'];
-        let status = c['status'];
-        let in_user = c['in_user'];
-        let comment = c['comment'];
+          rows.forEach((c) => {
+            let gtin = c["gtin"];
+            let in_date = c["date"].substr(2);
+            let in_date_4y = c["date"]
+            let name = c["name"];
+            let lot = c["lot"];
+            let exp = c["exp"].substr(2);
+            let exp_4y = c["exp"];
+            let ea = c["ea"]
+            // let ref = c["ref"];
+            let code = c["code"];
+            let out_date = c['out_date'];
+            let instrument = c['instrument'];
+            let status = c['status'];
+            let in_user = c['in_user'];
+            let comment = c['comment'];
+            let used_ea = c['used_ea'];
+            let badgeUsedEa = used_ea !== 0 ? `(${used_ea})` : '';
+            let badgeUsed = out_date !== null ? '<span class="badge text-bg-secondary">Used</span>' : '';
+            // let badgeExpired = out_date === null && status === "expired" ? '<span class="badge text-bg-danger">Expired</span>' : '';
+            let badgePrimary = (comment === null || comment.trim() === "") ? '' : `<span class="badge text-bg-primary" data-bs-toggle="tooltip" data-bs-title="${comment}">!</span>`;
+            let exp_stat = c['exp_stat'];
+            let badgeExp_expired = (exp_stat === 'expired') ? '<span class="badge rounded-pill text-bg-danger">Expired</span>' : '';
+            let badgeExp_Warning = (exp_stat === 'warning') ? '<span class="badge rounded-pill text-bg-warning">Warning</span>' : '';
+            // let tooltip = (comment === null || comment.trim()==="") ? '' : `data-bs-toggle="tooltip" data-bs-title="${comment}"`
 
-        let badgeUsed = out_date !== null ? '<span class="badge text-bg-secondary">Used</span>' : '';
-        let badgeExpired = out_date === null && status === "expired" ? '<span class="badge text-bg-danger">Expired</span>' : '';
-        let badgePrimary = (comment === null || comment.trim() === "") ? '' : '<span class="badge text-bg-primary">!</span>';
-
-
-
-        let temp_html = `
+            let temp_html = `
           <tr>
             <td>${in_date}</td>
             <td>${instrument}</td>
             <td>${code}</td>
-            <td class="name" data-bs-toggle="modal" data-bs-target="#manualinput" onclick="comment_modal('${id}')">${name}${badgeUsed}${badgeExpired}${badgePrimary}</td>
+            <td>${name}${badgeUsed}${badgeExp_Warning}${badgeExp_expired}${badgePrimary}</td>
             <td>${lot}</td>
             <td>${exp}</td>
+            <td>${ea}${badgeUsedEa}</td>
             <td>${in_user}</td>
-            <td><button onclick="del_order('${id}')" class="btn btn-warning btn-sm">삭제</button></td>
+            <td class="name" data-bs-toggle="modal" data-bs-target="#manualinput" onclick="modify_modal('${gtin}','${in_date_4y}','${name}','${lot}','${exp_4y}','${ea}','${comment}')")"><span class="badge rounded-pill text-bg-warning">Edit/Del</span></td>
           </tr>`;
-        $("#order-box").append(temp_html);
-      });
+            $("#order-box").append(temp_html);
+          });
+          var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+          var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+          })
 
-      createPaginationControls(data['result'].length, itemsPerPage, page);
-    });
-}
-
-
-function createPaginationControls(totalItems, itemsPerPage, currentPage) {
-  let totalPages = Math.ceil(totalItems / itemsPerPage);
-  let paginationHtml = '<ul class="pagination">';
-
-  for (let i = 1; i <= totalPages; i++) {
-    if (i === currentPage) {
-      paginationHtml += `<li class="page-item active"><a class="page-link" href="#" onclick="search1(${i})">${i}</a></li>`;
-    } else {
-      paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="search1(${i})">${i}</a></li>`;
+          // createPaginationControls(data['result'].length, itemsPerPage, page);
+        })
+        .catch(error => {
+            // 오류가 발생한 경우에는 경고창을 표시
+            alert('There was a problem with the fetch operation:', error.message);
+        });
     }
-  }
 
-  paginationHtml += '</ul>';
-  $("#pagination").html(paginationHtml);
-}
+
+    // function createPaginationControls(totalItems, itemsPerPage, currentPage) {
+    //   let totalPages = Math.ceil(totalItems / itemsPerPage);
+    //   let paginationHtml = '<ul class="pagination">';
+
+    //   for (let i = 1; i <= totalPages; i++) {
+    //     if (i === currentPage) {
+    //       paginationHtml += `<li class="page-item active"><a class="page-link" href="#" onclick="in_reagent_search(${i})">${i}</a></li>`;
+    //     } else {
+    //       paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="in_reagent_search(${i})">${i}</a></li>`;
+    //     }
+    //   }
+
+    //   paginationHtml += '</ul>';
+    //   $("#pagination").html(paginationHtml);
+    // }
+
+    function modify_modal(gtin, in_date, name, lot, exp, ea, comment) {
+        if (comment == 'null') {
+          $("#modal").empty();
+          let temp_html = `
+    <div class="modal-content">
+    <div class="modal-header">
+      <h1 class="modal-title fs-5" id="manualinputLabel">시약입고수정</h1>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body" >
+    <div class="input-group input-group-sm mb-3">
+    <span class="input-group-text">입고일</span>
+      <input id="comment_date" type="date" class="form-control form-control-sm" value="${in_date}"/>
+    </div>
+    <div class="input-group input-group-sm mb-3">
+    <span class="input-group-text">시약명</span>
+        <input id="comment_name" type="text" readonly class="form-control form-control-sm" value="${name}"/>
+    </div>
+    <div class="input-group input-group-sm mb-3">
+    <span class="input-group-text">Lot</span>
+        <input id="comment_lot" type="text" class="form-control form-control-sm" value="${lot}"/>
+    </div>
+    <div class="input-group input-group-sm mb-3">
+    <span class="input-group-text">exp.date</span>
+        <input id="comment_exp" type="date" class="form-control form-control-sm" value="${exp}"/>
+    </div>
+    <div class="input-group input-group-sm mb-3">
+    <span class="input-group-text">수량</span>
+        <input id="comment_ea" type="number" class="form-control form-control-sm" value="${ea}"/>
+    </div>
+    <div class="mb-3">
+    <label for="comment_modal" class="form-label">비고</label>
+    <textarea class="form-control" id="comment_modal" rows="3"></textarea>
+  </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="modify_save('${gtin}','${in_date}','${lot}','${exp}','${ea}','')">등록/수정</button>
+    </div>
+  </div>`
+          $("#modal").append(temp_html);
+        }
+        else {
+          $("#modal").empty();
+          let temp_html = `
+    <div class="modal-content">
+    <div class="modal-header">
+      <h1 class="modal-title fs-5" id="manualinputLabel">시약 특이사항</h1>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body" >
+    <div class="input-group input-group-sm mb-3">
+    <span class="input-group-text">입고일</span>
+      <input id="comment_date" type="date" class="form-control form-control-sm" value="${in_date}"/>
+    </div>
+    <div class="input-group input-group-sm mb-3">
+    <span class="input-group-text">시약명</span>
+        <input id="comment_name" type="text" readonly class="form-control form-control-sm" value="${name}"/>
+    </div>
+    <div class="input-group input-group-sm mb-3">
+    <span class="input-group-text">Lot</span>
+        <input id="comment_lot" type="text" class="form-control form-control-sm" value="${lot}"/>
+    </div>
+    <div class="input-group input-group-sm mb-3">
+    <span class="input-group-text">exp.date</span>
+        <input id="comment_exp" type="date" class="form-control form-control-sm" value="${exp}"/>
+    </div>
+    <div class="input-group input-group-sm mb-3">
+    <span class="input-group-text">수량</span>
+        <input id="comment_ea" type="number" class="form-control form-control-sm" value="${ea}"/>
+    </div>
+      <div class="mb-3">
+  <label for="comment_modal" class="form-label">비고</label>
+  <textarea class="form-control" id="comment_modal" rows="3">${comment}</textarea>
+</div>
+
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="modify_save('${gtin}','${in_date}','${lot}','${exp}','${ea}','${comment}')">등록/수정</button>
+    </div>
+  </div>`
+          $("#modal").append(temp_html);
+        }
+      }
+
+    function modify_save(gtin, in_date, lot, exp, ea, comment) {
+      let user = $("#user").val();
+      let modify_comment = $("#comment_modal").val();
+      let modify_date = $("#comment_date").val();
+      let modify_lot = $("#comment_lot").val();
+      let modify_exp = $("#comment_exp").val();
+      let modify_ea = $("#comment_ea").val()
+      let formData = new FormData();
+      formData.append('gtin', gtin);
+      formData.append('user', user);
+      formData.append('date', in_date);
+      formData.append('lot', lot);
+      formData.append('exp', exp);
+      formData.append('ea', ea);
+      formData.append('comment', comment);
+      formData.append('modify_date', modify_date);
+      formData.append('modify_lot', modify_lot);
+      formData.append('modify_exp', modify_exp);
+      formData.append('modify_ea', modify_ea);
+      formData.append('modify_comment', modify_comment);
+      fetch('/modify_save', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+        $("#modal").empty();
+        in_reagent_search()
+      })
+    }
 
     function manual() {
       $("#modal").empty();
@@ -590,20 +723,23 @@ function createPaginationControls(totalItems, itemsPerPage, currentPage) {
               <option value="시약">시약</option>
               <option value="Cal/QC">Cal/QC</option>
               <option value="보조시약">보조시약</option>
+              <option value="소모품">소모품</option>
             </select>
           </div>
 
           <div class="input-group input-group-sm mb-3">
             <span class="input-group-text">시약명</span>
-            <select id="name_manual_search" class="form-select" >
+            <select id="name_manual_search" class="form-select" onchange="reagent_select()">
               <option selected value="">시약명</option>
             </select>
           </div>
           <div class="input-group input-group-sm mb-3">
             <span class="input-group-text">Lot</span>
 
-            <input id="lot_manual" type="text" class="form-control form-control-sm">
-
+            <input id="lot_manual" list="lot_datalist" type="text" class="form-control form-control-sm" onchange="lot_select()">
+            <datalist id="lot_datalist">
+              
+            </datalist>
             <span class="input-group-text">Exp.Date</span>
             <input id="expdate_manual" type="date" class="form-control form-control-sm" />
           </div>
@@ -619,98 +755,35 @@ function createPaginationControls(totalItems, itemsPerPage, currentPage) {
             <span class="input-group-text">비고</span>
             <input id="comment_manual" type="text" class="form-control form-control-sm" />
           </div>
+          <div class="input-group input-group-sm mb-3">
+            <span class="input-group-text">입고방법</span>
+            <input id="etc_manual" type="text" class="form-control form-control-sm" readonly/>
+          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-          <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="manual_save()">등록/수정</button>
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="in_reagent_manual()">등록/수정</button>
         </div>
       </div>`
       $("#modal").append(temp_html);
       select2();
     }
-    function comment_modal(id) {
-      // console.log(id)
-      let formData = new FormData();
-      formData.append("id", id);
-      fetch('/comment',{method: "POST", body: formData,}).then((res) => res.json()).then((data) => {
-        
-        comment = data['result'][0]['comment']
-        if (comment == null){
-          $("#modal").empty();
-        let temp_html = `
-        <div class="modal-content">
-        <div class="modal-header">
-          <h1 class="modal-title fs-5" id="manualinputLabel">시약 특이사항</h1>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body" >
-          
-          <div class="input-group input-group-sm mb-3">
-            <span class="input-group-text">비고</span>
-            <input id="comment_modal" type="text" class="form-control form-control-sm" value=""/>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-          <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="comment_save('${id}')">등록/수정</button>
-        </div>
-      </div>`
-      $("#modal").append(temp_html);
-        }
-        else {
-          $("#modal").empty();
-        let temp_html = `
-        <div class="modal-content">
-        <div class="modal-header">
-          <h1 class="modal-title fs-5" id="manualinputLabel">시약 특이사항</h1>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body" >
-          
-          <div class="input-group input-group-sm mb-3">
-            <span class="input-group-text">비고</span>
-            <input id="comment_modal" type="text" class="form-control form-control-sm" value="${comment}"/>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-          <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="comment_save('${id}')">등록/수정</button>
-        </div>
-      </div>`
-      $("#modal").append(temp_html);
-        }
-        
-        console.log(id)
-        
-      })
-    }
-
-    function comment_save(id) {
-      let comment = $("#comment_modal").val();
-      let formData = new FormData();
-      formData.append('id',id);
-      formData.append('comment',comment);
-      fetch('/comment_save',{method: "POST", body: formData,}).then((res) =>res.json()).then((data)=> {
-        $("#modal").empty();
-        search1()
-      })
-      
-    }
 
 
-    function del_order(del) {
-      let formData = new FormData();
-      formData.append("del_give", del);
-      fetch('/del', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
-        search1();
-      });
-    }
+
+    // function del_order(del) {
+    //   let formData = new FormData();
+    //   formData.append("del_give", del);
+    //   fetch('/del', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+    //     in_reagent_search();
+    //   });
+    // }
 
     function enterkey() {
       if (window.event.keyCode == 13) {
 
         // 엔터키가 눌렸을 때 실행할 내용
-        save_order();
+        in_reagent_barcode();
       }
     }
     function enterkey2() {
@@ -725,7 +798,7 @@ function createPaginationControls(totalItems, itemsPerPage, currentPage) {
 </head>
 
 <body>
-  <div class="mask"></div>
+  
   <div class="order">
     <!-- navigation -->
     <div>
@@ -744,11 +817,20 @@ function createPaginationControls(totalItems, itemsPerPage, currentPage) {
               <li class="nav-item">
                 <a class="nav-link" href="#" onclick="out_index()">출고</a>
               </li>
+              <!-- <li class="nav-item">
+                <a class="nav-link" href="#" onclick="make_reagent()">제조</a>
+              </li> -->
               <li class="nav-item">
                 <a class="nav-link" href="#" onclick="total()">현황</a>
               </li>
               <li class="nav-item">
                 <a class="nav-link" href="#" onclick="ref_reg()">등록</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#" onclick="report()">보고</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#" onclick="admin()">사용자관리</a>
               </li>
             </ul>
           </div>
@@ -757,7 +839,7 @@ function createPaginationControls(totalItems, itemsPerPage, currentPage) {
           <div class="input-group">
             <span class="input-group-text" id="basic-addon1">사용자</span>
             <select class="form-select form-select-sm" aria-label=".form-select-sm example" id="user"
-              onchange="change()">
+              onchange="user_change()">
               <option selected value="default">{{ user_info['name'] }}</option>
             </select>
             <span>
@@ -774,7 +856,7 @@ function createPaginationControls(totalItems, itemsPerPage, currentPage) {
         <span class="input-group-text">바코드</span>
         <input id="barcode" type="text" class="form-control form-control-sm" onkeyup="enterkey();" autofocus />
         <span>
-          <type="button" class="btn btn-warning btn-sm" onclick="save_order()">입력</button>
+          <type="button" class="btn btn-warning btn-sm" onclick="in_reagent_barcode()">입력</button>
         </span>
         <span>
           <type='button' class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#manualinput"
@@ -787,7 +869,10 @@ function createPaginationControls(totalItems, itemsPerPage, currentPage) {
 
           <div class="col-md-5" id="nameform">
             <label for="name" class="form-label">시약명</label>
-            <input type="text" class="form-control" id="name">
+            <input list="reagent" type="text" class="form-control" id="name" onchange="reagent_info()">
+            <datalist id="reagent">
+              
+            </datalist>
           </div>
           <div class="col-md-3" id="lotform">
             <label for="lot" class="form-label">Lot No.</label>
@@ -799,14 +884,9 @@ function createPaginationControls(totalItems, itemsPerPage, currentPage) {
           </div>
           <div class="col-md-1">
             <label for="ea" class="form-label">입고량</label>
-            <input type="number" class="form-control" id="ea" onkeyup="enterkey2();">
+            <input type="number" class="form-control" id="ea" value="1" onkeyup="enterkey2();">
           </div>
-          <div class="col-md-12" id="ref_save">
-            <span>
-              <type="button" class="btn btn-warning mybtn" onclick="save()">입고</button>
-            </span>
-
-          </div>
+          
         </form>
         <div class="detail">
           <form class="row g-2">
@@ -818,47 +898,82 @@ function createPaginationControls(totalItems, itemsPerPage, currentPage) {
             <div class="col-md-4" id="instrumentform">
               <label for="instrument" class="form-label">장비명</label>
               <select id="instrument" class="form-select">
-                <option selected>Choose...</option>
+                <option value="" selected>Choose...</option>
 
               </select>
             </div>
-            <div class="col-md-3" id="codeform">
+            <div class="col-md-2" id="codeform">
               <label for="code" class="form-label">분류</label>
               <select id="code" class="form-select">
-                <option selected>Choose...</option>
+                <option value="" selected>Choose...</option>
                 <option value="시약">시약</option>
                 <option value="Cal/QC">Cal/QC</option>
                 <option value="보조시약">보조시약</option>
+                <option value="소모품">소모품</option>
 
               </select>
             </div>
-            <div class="col-md-3" id="tempform">
+            <div class="col-md-2" id="tempform">
               <label for="temp" class="form-label">보관온도</label>
               <select id="temp" class="form-select">
-                <option selected>Choose...</option>
+                <option value="" selected>Choose...</option>
                 <option value="냉장">냉장</option>
                 <option value="실온">실온</option>
                 <option value="냉동">냉동</option>
               </select>
             </div>
-            <div class="col-md-3" id="volumeform">
+            <div class="col-md-2" id="volumeform">
               <label for="volumn" class="form-label">테스트수</label>
               <input type="number" class="form-control" id="volume">
 
             </div>
-            <div class="col-md-3" id="total_eaform">
+            <div class="col-md-2" id="unitform">
+              <label for="volumn" class="form-label">단위</label>
+              <input type="text" class="form-control" id="unit">
+
+            </div>
+            <div class="col-md-2" id="total_eaform">
               <label for="total_ea" class="form-label">포장수량</label>
               <input type="number" class="form-control" id="total_ea">
 
             </div>
-            <div class="col-md-3" id="onboardform">
-              <label for="total_ea" class="form-label">기본장착수량</label>
-              <input type="number" class="form-control" id="onboard">
+            <div class="col-md-2" id="onboardform">
+              <label for="onboard" class="form-label">기본장착수량</label>
+              <input type="number" class="form-control"  id="onboard">
 
             </div>
-            <div class="col-md-12" id="commentform">
-              <label for="total_ea" class="form-label">비고</label>
+            <div class="col-md-2" id="make_onboardform">
+              <label for="make_onboard" class="form-label">제조유효기간(일)</label>
+              <input type="number" class="form-control" id="make_onboard" value="0">
+
+            </div>
+            <div class="col-md-6" id="commentform">
+              <label for="comment" class="form-label">비고</label>
               <input type="text" class="form-control" id="comment">
+              
+            </div>
+            <div class="col-md-4">
+              <label for="comment" class="form-label">입고방법</label>
+              <input type="text" class="form-control" id="etc">
+            </div>
+            <div class="col-md-2" >
+              <label for="print_form" class="form-label">출고표시</label>
+              <select id="print_form" class="form-select">
+                <option value="" selected>Choose...</option>
+                <option value="reagent">reagent</option>
+                <option value="vial">vial</option>
+                
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="manufactform" class="form-label">조제방법</label>
+              <textarea class="form-control" id="manufact" rows="1"></textarea>
+            </div>
+            <div class="col-md-12" >
+              <span>
+                <type="button" class="btn btn-warning mybtn" onclick="save()">입고</button>
+              </span>
+
             </div>
           </form>
         </div>
@@ -881,26 +996,27 @@ function createPaginationControls(totalItems, itemsPerPage, currentPage) {
           <option value="시약">시약</option>
           <option value="Cal/QC">Cal/QC</option>
           <option value="보조시약">보조시약</option>
+          <option value="소모품">소모품</option>
 
         </select>
         <span class="input-group-text">시약명</span>
-        <select id="reagent_search" class="form-select" onchange="search1()">
+        <select id="reagent_search" class="form-select" onchange="in_reagent_search()">
           <option selected value="all">전체</option>
         </select>
         <span class="input-group-text">기간</span>
-        <input id="start" type="date" class="form-control" onchange="search1()" />
+        <input id="start" type="date" class="form-control" onchange="in_reagent_search()" />
         <span class="input-group-text">~</span>
-        <input id="end" type="date" class="form-control" onchange="search1()" />
+        <input id="end" type="date" class="form-control" onchange="in_reagent_search()" />
         <!-- <span><button onclick="search()" type="button" class="btn btn-warning mybtn">검색</button></span> -->
       </div>
       <!-- <div class="input-group input-group-sm mb-3">
         
         <span class="input-group-text">페이지당 조회</span>
-        <input type="number" class="form-control" id="view" onchange="search1()" value="10">
+        <input type="number" class="form-control" id="view" onchange="in_reagent_search()" value="10">
       </div> -->
     </div>
     <div>
-      <table class="table">
+      <table class="table table-striped">
         <thead>
           <tr>
             <th scope="col">입고일</th>
@@ -909,8 +1025,9 @@ function createPaginationControls(totalItems, itemsPerPage, currentPage) {
             <th scope="col">시약명</th>
             <th scope="col">lot.No</th>
             <th scope="col">유효기간</th>
+            <th scope="col">수량</th>
             <th scope="col">입고자</th>
-            <th scope="col">삭제</th>
+            <th scope="col">수정/삭제</th>
           </tr>
         </thead>
         <tbody id="order-box" class="align-middle">
@@ -918,17 +1035,17 @@ function createPaginationControls(totalItems, itemsPerPage, currentPage) {
       </table>
       <div class="container">
 
-      <span class="page" id="pagination"></span>
-      
+        <span class="page" id="pagination"></span>
+
+      </div>
     </div>
-  </div>
 
 
-  <!-- modal -->
-  <div class="modal fade" id="manualinput" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-    aria-labelledby="manualinputLabel" aria-hidden="true">
-    <div class="modal-dialog" id="modal">
-      <!-- <div class="modal-content">
+    <!-- modal -->
+    <div class="modal fade" id="manualinput" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+      aria-labelledby="manualinputLabel" aria-hidden="true">
+      <div class="modal-dialog" id="modal">
+        <!-- <div class="modal-content">
         <div class="modal-header">
           <h1 class="modal-title fs-5" id="manualinputLabel">시약 특이사항</h1>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -945,7 +1062,7 @@ function createPaginationControls(totalItems, itemsPerPage, currentPage) {
           <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="comment_save()">등록/수정</button>
         </div>
       </div> -->
+      </div>
     </div>
-  </div>
 
 </body>

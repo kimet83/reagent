@@ -7,10 +7,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="/static/script.js"></script>
   <script src="/static/jquery-3.7.1.min.js"></script>
-  <link href="/static/bootstrap-5.3.2/css/bootstrap.min.css" rel="stylesheet"
-    integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-  <script src="/static/bootstrap-5.3.2/js/bootstrap.bundle.min.js"
-    integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm"
     crossorigin="anonymous"></script>
 
   <link rel="icon" type="image/x-icon" href="/static.favicon.ico">
@@ -35,15 +35,15 @@
         $("#start").val(start);
         $("#end").val(today);
         // $("#out_date_manual").val(today);
-        select();
+        instrument_and_user_list();
 
         instrument_select();
 
       })
     });
     // 장비명 스크립트
-    function select() {
-      fetch('/select').then((res) => res.json()).then((data) => {
+    function instrument_and_user_list() {
+      fetch('/instrument_and_user_list').then((res) => res.json()).then((data) => {
         let rows = data['instrument']
         console.log(rows)
         let rows2 = data['user']
@@ -71,7 +71,7 @@
     }
 
 
-    function search1(page=1) {
+    function total_count(page = 1) {
       let start = $("#start").val();
       let end = $("#end").val();
       // let instrument_search = $("#instrument_search").val();
@@ -85,7 +85,7 @@
       formData.append("end_give", end);
       formData.append("instrument_give", instrument_search1)
       formData.append("code_give", code_search)
-      formData.append("gtin", reagent_search)
+      formData.append("name", reagent_search)
       console.log(start, end, instrument_search1, code_search)
 
       fetch('/total_count', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
@@ -95,10 +95,10 @@
         let rows = data['result']
         console.log(rows)
         let itemsPerPage = 12;
-      let startIndex = (page - 1) * itemsPerPage;
-      let endIndex = startIndex + itemsPerPage;
-      let currentPageData = rows.slice(startIndex, endIndex);
-      currentPageData.forEach((c) => {
+        let startIndex = (page - 1) * itemsPerPage;
+        let endIndex = startIndex + itemsPerPage;
+        let currentPageData = rows.slice(startIndex, endIndex);
+        currentPageData.forEach((c) => {
           let gtin = c["gtin"];
           let date = c["date"].substr(2);
 
@@ -110,11 +110,16 @@
           let code = c["code"];
           let inventory = c['inventory']
           let used = c['used']
+          let exp_stat = c['exp_stat'];
+          let badgeExp_expired = (exp_stat === 'expired') ? '<span class="badge rounded-pill text-bg-danger">Expired</span>' : '';
+          let badgeExp_Warning = (exp_stat === 'warning') ? '<span class="badge rounded-pill text-bg-warning">Warning</span>' : '';
+
+          // let badgePrimary = (comment === null || comment.trim() === "") ? '' : '<span class="badge text-bg-primary">!</span>';
 
           let temp_html = `          <tr>
             <td>${instrument}</td>
             <td>${code}</td>
-            <td>${name}</td>
+            <td>${name}${badgeExp_Warning}${badgeExp_expired}</td>
             <td>${lot}</td>
             <td>${exp}</td>
             <td>${ea}</td>
@@ -129,23 +134,23 @@
         createPaginationControls(data['result'].length, itemsPerPage, page);
       });
 
-      search2()
+      search_open()
     }
     function createPaginationControls(totalItems, itemsPerPage, currentPage) {
-  let totalPages = Math.ceil(totalItems / itemsPerPage);
-  let paginationHtml = '<ul class="pagination">';
+      let totalPages = Math.ceil(totalItems / itemsPerPage);
+      let paginationHtml = '<ul class="pagination">';
 
-  for (let i = 1; i <= totalPages; i++) {
-    if (i === currentPage) {
-      paginationHtml += `<li class="page-item active"><a class="page-link" href="#" onclick="search1(${i})">${i}</a></li>`;
-    } else {
-      paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="search1(${i})">${i}</a></li>`;
+      for (let i = 1; i <= totalPages; i++) {
+        if (i === currentPage) {
+          paginationHtml += `<li class="page-item active"><a class="page-link" href="#" onclick="total_count(${i})">${i}</a></li>`;
+        } else {
+          paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="total_count(${i})">${i}</a></li>`;
+        }
+      }
+
+      paginationHtml += '</ul>';
+      $("#pagination").html(paginationHtml);
     }
-  }
-
-  paginationHtml += '</ul>';
-  $("#pagination").html(paginationHtml);
-}
     function instrument_select() {
       let instrument_select = document.getElementById("instrument_search");
       if (instrument_select.value === "장비명") {
@@ -173,14 +178,14 @@
         rows.forEach((c) => {
           let name = c["name"]
           let gtin = c["gtin"]
-          let temp_html = `<option value="${gtin}" >${name}</option>`;
+          let temp_html = `<option value="${name}" >${name}</option>`;
           $("#reagent_search").append(temp_html);
         });
       });
-      search1();
+      total_count();
     };
 
-    function search2() {
+    function search_open() {
       var instrument_search1 = document.getElementById("instrument_search").value;
       var code_search = document.getElementById("code_search").value;
       // var instrument_search = document.querySelector('input[name="instrumnet_search"]:checked').value;
@@ -189,7 +194,7 @@
       formData.append("instrument_give", instrument_search1)
       formData.append("code_give", code_search)
       console.log(instrument_search1, code_search)
-      fetch('/search2', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+      fetch('/search_open', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
 
         let rows = data['result']
         console.log(rows)
@@ -211,14 +216,18 @@
           let id = a["id"]
           let open_user = a["open_user"]
           let remain = total_ea - quantity;
-
+          let exp_stat = a['exp_stat'];
+          let comment = a['comment'];
+          let badgeExp_expired = (exp_stat === 'expired') ? '<span class="badge rounded-pill text-bg-danger">Expired</span>' : '';
+          let badgeExp_Warning = (exp_stat === 'warning') ? '<span class="badge rounded-pill text-bg-warning">Warning</span>' : '';
+          let badgePrimary = (comment === null || comment.trim() === "") ? '' : `<span class="badge text-bg-primary" data-bs-toggle="tooltip" data-bs-title="${comment}">!</span>`;
 
           let temp_html = `<tr>
             <td>${date}</td>
             <td>${out_date}</td>
             <td>${instrument}</td>
             <td>${code}</td>
-            <td>${name}</td>
+            <td>${name}${badgeExp_Warning}${badgeExp_expired}${badgePrimary}</td>
             <td>${lot}</td>
             <td>${exp}</td>
             <td>${remain}/${total_ea}</td>
@@ -227,6 +236,10 @@
           </tr>`;
           $("#order-box2").append(temp_html);
         });
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+          return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
       });
     }
 
@@ -250,7 +263,7 @@
 </head>
 
 <body>
-  <div class="mask"></div>
+  
   <div class="order">
     <!-- navigation -->
     <div>
@@ -269,11 +282,20 @@
               <li class="nav-item">
                 <a class="nav-link" href="#" onclick="out_index()">출고</a>
               </li>
+              <!-- <li class="nav-item">
+                <a class="nav-link" href="#" onclick="make_reagent()">제조</a>
+              </li> -->
               <li class="nav-item">
                 <a class="nav-link active" aria-current="page" href="#" onclick="total()">현황</a>
               </li>
               <li class="nav-item">
                 <a class="nav-link" href="#" onclick="ref_reg()">등록</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#" onclick="report()">보고</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#" onclick="out_device()">POCT</a>
               </li>
             </ul>
           </div>
@@ -282,7 +304,7 @@
           <div class="input-group">
             <span class="input-group-text" id="basic-addon1">사용자</span>
             <select class="form-select form-select-sm" aria-label=".form-select-sm example" id="user"
-              onchange="change()">
+              onchange="user_change()">
               <option selected value="default">{{ user_info['name'] }}</option>
             </select>
             <span>
@@ -304,24 +326,25 @@
           <option value="시약">시약</option>
           <option value="Cal/QC">Cal/QC</option>
           <option value="보조시약">보조시약</option>
+          <option value="소모품">소모품</option>
         </select>
       </div>
       <div class="input-group input-group-sm mb-3">
         <span class="input-group-text">시약명</span>
-        <select id="reagent_search" class="form-select" onchange="search1()">
+        <select id="reagent_search" class="form-select" onchange="total_count()">
           <option selected value="all">전체</option>
         </select>
         <span class="input-group-text">기간</span>
-        <input id="start" type="date" class="form-control" onchange="search1()" />
+        <input id="start" type="date" class="form-control" onchange="total_count()" />
         <span class="input-group-text">~</span>
-        <input id="end" type="date" class="form-control" onchange="search1()" />
+        <input id="end" type="date" class="form-control" onchange="total_count()" />
       </div>
     </div>
 
 
     <div>
       <h4>시약 재고 현황</h4>
-      <table class="table">
+      <table class="table table-striped">
         <thead>
           <tr>
             <th scope="col">장비명</th>
@@ -347,7 +370,7 @@
     </div>
     <div>
       <h4>개봉/사용중 시약</h4>
-      <table class="table">
+      <table class="table table-striped">
         <thead>
           <tr>
             <th scope="col">입고일</th>

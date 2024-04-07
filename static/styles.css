@@ -10,26 +10,45 @@ body {
     background-color: lightgray;
 }
 
+
+
+thead {
+    display: table-header-group;
+}
+
 h1 {
     font-weight: bold;
 }
+
 td.name:hover {
-    background-color: lightgray; /* 마우스를 올릴 때 음영 변경 */
+    background-color: lightgray;
+    /* 마우스를 올릴 때 음영 변경 */
     cursor: pointer;
+    /* vertical-align : middle;
+    text-align: center; */
 }
+
 .order {
-    width: 900px;
+    max-width: 1000px;
     margin: 60px auto 0px auto;
     padding-bottom: 30px;
     font-size: 13px;
 }
+
 .container {
-    text-align: center; /* 텍스트를 가운데 정렬합니다. */
-  }
-  
-  .page {
-    display: inline-block; /* 요소를 인라인 블록 요소로 만듭니다. */
-  }
+    text-align: center;
+    /* 텍스트를 가운데 정렬합니다. */
+}
+
+.page-break {
+    page-break-after: always;
+}
+
+.page {
+    display: inline-block;
+    /* 요소를 인라인 블록 요소로 만듭니다. */
+}
+
 .mybtn {
     width: 100%;
 }
@@ -38,6 +57,9 @@ td.name:hover {
 .order>table {
     margin: 40px 0;
     font-size: 18px;
+    text-align: center;
+    vertical-align: middle;
+    display: table-header-group;
 }
 
 option {
@@ -49,6 +71,7 @@ option {
     padding: 5px;
 
 }
+
 .detail2 {
     background-color: aquamarine;
     padding: 5px;
@@ -59,27 +82,82 @@ option {
     padding: 5px;
 
 }
-.a4-page {
-    page-break-after: always;
-    width: 210mm;
-    height: 297mm;
-    margin: 20mm;
-  }
-  
-  .item {
+
+.a4 {
+    /* width: 21cm; */
+    /* height: 29.7cm; */
+    margin: 1cm auto;
+    padding: 1cm;
+    background-color: white;
+    page-break-before: always
+}
+
+.a4-front {
+    /* width: 21cm; */
+    /* height: 29.7cm; */
+    margin: 1cm auto;
+    padding: 1cm;
+    background-color: white;
+}
+
+.print_table {
+    width: 100%;
+    background-color: lightgray;
+    /* padding-bottom: 30px; */
+    margin-bottom: 30px
+}
+
+.th {
+    vertical-align: middle;
+    text-align: center;
+}
+
+.td {
+    vertical-align: middle;
+    text-align: center;
+}
+
+/* 고정된 div 스타일 */
+.fixed-div {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border: 1px solid #ccc;
+
+}
+
+
+.fixed-div>table>thead {
+    display: table-header-group;
+
+}
+
+.reagent {
+    border: 1px solid gray;
+}
+
+.item {
     width: 48%;
     float: left;
     border: 1px solid #000;
     margin: 1%;
     padding: 10px;
     box-sizing: border-box;
-  }
-  
-  .item p {
+}
+
+.item p {
     margin: 0;
-  }
-  
-  button {
+}
+
+button {
     display: block;
     margin-top: 10px;
-  }
+}
+#sign, #sign td {
+    border-collapse: collapse;
+    border: 1px solid black;
+    text-align: center;
+}
+#sign td {
+    width: 33.33%;
+}

@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="/static/script.js"></script>
+  <script src="/static/jquery-3.7.1.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm"
+    crossorigin="anonymous"></script>
+
+  <link rel="icon" type="image/x-icon" href="/static.favicon.ico">
+
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" type="text/css" href="/static/styles.css">
+
+  <title>사용자관리</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR&display=swap');
+  </style>
+  <script>
+    $(document).ready(function () {
+      // 기본날짜
+      fetch('/current_date').then((res) => res.json()).then((data) => {
+        console.log(data)
+        let start = data["start"];
+        let today = data['end'];
+        $("#date").val(today);
+        $("#start").val(today);
+        $("#end").val(today);
+        user_list();
+        users();
+        // make_reagent_list();
+        // search_make_reagent_list()
+        // search_maked_reagent_list()
+        // out_search()
+        // reagent()
+
+
+
+      })
+    });
+    // 장비명 스크립트
+    function user_list() {
+      fetch('/instrument_and_user_list').then((res) => res.json()).then((data) => {
+        // let rows = data['instrument']
+        // console.log(rows)
+        let rows2 = data['user']
+
+        // rows.forEach((b) => {
+        //   let instrument1 = b["instrument"]
+        //   // let instrument1 = b[0]
+        //   let temp_html = `<option value="${instrument1}" >${instrument1}</option>`;
+        //   $("#instrument").append(temp_html);
+        //   $("#instrument_search").append(temp_html);
+        //   $("#instrument_manual_search").append(temp_html);
+        // })
+        $("#user").empty()
+        let temp_html = `<option selected value="{{ user_info['username'] }}">{{ user_info['name'] }}({{ user_info['username'] }})</option>`
+        $("#user").append(temp_html)
+        rows2.forEach((b) => {
+          let username = b["username"]
+          let name = b["name"]
+          // let instrument1 = b[0]
+          let temp_html = `<option value="${username}" >${name}(${username})</option>`;
+          $("#user").append(temp_html);
+
+        });
+      });
+    }
+    function users() {
+      fetch('/user_list').then((res) => res.json()).then((data) => {
+        let rows = data['result']
+        console.log(rows)
+        $("#user_list1").empty()
+        rows.forEach((a) => {
+          let id = a['username']
+          let name = a['name']
+          let available = a['available']
+          let devcheck = (id === 'dev') ? '' : `<input id="${id}_use" type="checkbox" value="${id}" class="form-control-sm" onchange="checkchange(this)"/>`
+          let devcheck2 = (id === 'dev') ? `<td></td>` : `<td class="name" onclick="delete_user('${id}')"><span class="badge rounded-pill text-bg-warning">Delete</span>
+            </td>`
+          let temp_html = `
+          <tr>
+            <td style="text-align: center;">${id}</td>
+            <td><input id="${id}_name" type="text" value="${name}" placeholder="이름을 입력하세요." class="form-control-sm" style="width:90px"/></td>
+            <td><input id="${id}_old_pw" type="password" value="" placeholder="기존 암호를 입력하세요." class="form-control-sm" style="width:160px"/></td>
+            <td><input id="${id}_new_pw" type="password" value="" placeholder="새 암호를 입력하세요." class="form-control-sm" style="width:160px"/></td>
+            <td><input id="${id}_re_pw" type="password" value="" placeholder="암호를 다시 입력하세요." class="form-control-sm" style="width:160px"/></td>
+            <td>${devcheck}</td>
+            <td class="name" onclick="edit_user('${id}')"><span
+                class="badge rounded-pill text-bg-warning">Edit</span></td>
+            ${devcheck2}
+          </tr>
+
+          `
+          $("#user_list1").append(temp_html)
+          var checkbox = $('#' + id + '_use');
+          if (available === '1') {
+            checkbox.prop('checked', true);
+          }
+          else {
+            checkbox.prop('checked', false);
+            $('#' + id + '_name').prop('disabled', true);
+            $('#' + id + '_old_pw').prop('disabled', true);
+            $('#' + id + '_new_pw').prop('disabled', true);
+            $('#' + id + '_re_pw').prop('disabled', true);
+
+          }
+        })
+      })
+    }
+    function checkchange(checkbox) {
+      if (checkbox.checked) {
+        $('#' + checkbox.value + '_name').prop('disabled', false);
+        $('#' + checkbox.value + '_old_pw').prop('disabled', false);
+        $('#' + checkbox.value + '_new_pw').prop('disabled', false);
+        $('#' + checkbox.value + '_re_pw').prop('disabled', false);
+        var username = checkbox.value
+        let formData = new FormData()
+        formData.append('username', username)
+        formData.append('available', '1')
+        fetch('/disable_user', {
+          method: "POST",
+          body: formData,
+        })
+          .then(res => res.json())
+          .then(data => {
+            users();
+            user_list()
+          });
+
+      }
+      else {
+        $('#' + checkbox.value + '_name').prop('disabled', true);
+        $('#' + checkbox.value + '_old_pw').prop('disabled', true);
+        $('#' + checkbox.value + '_new_pw').prop('disabled', true);
+        $('#' + checkbox.value + '_re_pw').prop('disabled', true);
+        var username = checkbox.value
+        let formData = new FormData()
+        formData.append('username', username)
+        formData.append('available', '0')
+        fetch('/disable_user', {
+          method: "POST",
+          body: formData,
+        })
+          .then(res => res.json())
+          .then(data => {
+            users();
+            user_list()
+          });
+
+
+      }
+    }
+    function reg_user() {
+      let username = $("#username_form").val();
+      let name = $("#name_form").val();
+      let password = $("#password_form").val();
+      let password2 = $("#password_form2").val();
+
+      if (password === password2) {
+        let formData = new FormData();
+        formData.append('username', username);
+        formData.append('name', name);
+        formData.append('password', password);
+
+        fetch('/reg_user', {
+          method: "POST",
+          body: formData,
+        })
+          .then(res => res.json())
+          .then(data => {
+            $("#username_form").val("");
+            $("#name_form").val("");
+            $("#password_form").val("");
+            $("#password_form2").val("");
+            users(); // users 함수 호출
+            user_list()
+          })
+          .catch(error => {
+            alert('Error:', error);
+          });
+      } else {
+        alert("두개의 비밀번호가 일치하지 않습니다.");
+        $("#password_form").val("");
+        $("#password_form2").val("");
+      }
+    }
+    function edit_user(username) {
+      let name = $('#' + username + '_name').val();
+      let old_pw = $('#' + username + '_old_pw').val();
+      let new_pw = $('#' + username + '_new_pw').val();
+      let re_pw = $('#' + username + '_re_pw').val();
+
+      if (new_pw === re_pw) {
+        let formData = new FormData();
+        formData.append('username', username);
+        formData.append('name', name);
+        formData.append('oldpassword', old_pw);
+        formData.append('newpassword', new_pw);
+
+        fetch('/edit_user', {
+          method: "POST",
+          body: formData,
+        })
+          .then(res => res.json())
+          .then(data => {
+            users();
+            user_list()
+          })
+          .catch(error => {
+            alert('Error:', error);
+          });
+      } else {
+        alert("두개의 비밀번호가 일치하지 않습니다.");
+        $('#' + username + '_new_pw').val('');
+        $('#' + username + '_re_pw').val('');
+      }
+    }
+    function delete_user(username) {
+      let old_pw = $('#' + username + '_old_pw').val();
+      let formData = new FormData()
+      formData.append("password",old_pw)
+      formData.append("username",username)
+      fetch('/delete_user', {
+          method: "POST",
+          body: formData,
+        })
+          .then(res => res.json())
+          .then(data => {
+            users();
+            user_list()
+          })
+          .catch(error => {
+            console.error('Error:', error);
+          });
+    }
+  </script>
+</head>
+
+<body style="background-color: rgb(170, 224, 156);">
+  <div class="order">
+    <!-- navigation -->
+    <div>
+      <nav class="navbar navbar-expand-lg bg-light">
+        <div class="container-fluid">
+          <a class="navbar-brand" href="#">사용자관리</a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+            aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarNav" width="70%">
+            <ul class="navbar-nav">
+              <li class="nav-item">
+                <a class="nav-link" aria-current="page" href="#" onclick="home()">입고</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link " href="#" onclick="out_index()">출고</a>
+              </li>
+              <!-- <li class="nav-item">
+                <a class="nav-link active" href="#" onclick="make_reagent()">제조</a>
+              </li> -->
+              <li class="nav-item">
+                <a class="nav-link" href="#" onclick="total()">현황</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#" onclick="ref_reg()">등록</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#" onclick="report()">보고</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link active" href="#" onclick="admin()">사용자관리</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <form class="container-fluid">
+          <div class="input-group">
+            <span class="input-group-text" id="basic-addon1">사용자</span>
+            <select class="form-select form-select-sm" aria-label=".form-select-sm example" id="user"
+              onchange="user_change()">
+              <option selected value="default">{{ user_info['name'] }}</option>
+            </select>
+            <span>
+              <type="button" class="btn btn-primary btn" onclick="logout()">Logout</button>
+            </span>
+          </div>
+        </form>
+      </nav>
+    </div>
+    <div class="order-info">
+      <div class="input-group input-group-sm mb-3">
+        <span class="input-group-text">아이디(사번)</span>
+
+        <input id="username_form" type="text" class="form-control" placeholder="사번을 입력하세요." />
+
+        <span class="input-group-text">이름</span>
+        <input id="name_form" type="text" class="form-control" placeholder="이름을 입력하세요." />
+        <span class="input-group-text">암호</span>
+        <input id="password_form" type="password" class="form-control" placeholder="암호를 입력하세요." />
+        <span class="input-group-text">재입력</span>
+        <input id="password_form2" type="password" class="form-control" placeholder="암호를 다시 입력하세요." />
+        <span>
+          <type='button' class="btn btn-warning btn-sm" onclick="reg_user()">사용자 등록</button>
+        </span>
+      </div>
+      <!-- <div class="input-group input-group-sm mb-3">
+          <span>
+            <type="button" class="btn btn-warning btn-sm" onclick="print_page()">인쇄</button>
+          </span>
+        </div> -->
+
+    </div>
+    <div class="order-info">
+      <h4>사용자 목록</h4>
+
+      <table class="table table-striped" style="text-align: center;">
+        <thead>
+          <tr>
+            <th scope="col" style="text-align: center;">아이디(사번)</th>
+            <th scope="col" style="text-align: center;">이름</th>
+            <th scope="col" style="text-align: center;">기존암호</th>
+            <th scope="col" style="text-align: center;">새암호</th>
+            <th scope="col" style="text-align: center;">재입력</th>
+            <th scope="col" style="text-align: center;">사용</th>
+            <th scope="col" style="text-align: center;">수정</th>
+            <th scope="col" style="text-align: center;">삭제</th>
+          </tr>
+        </thead>
+        <tbody id="user_list1" class="align-middle">
+          <tr>
+            <td style="text-align: center;">090033</td>
+            <td><input id="090033_name" type="text" value="김으뜸" placeholder="이름을 입력하세요." class="form-control-sm"
+                style="width:90px" /></td>
+            <td><input id="090033_old_pw" type="password" value="" placeholder="기존 암호를 입력하세요." class="form-control-sm"
+                style="width:160px" /></td>
+            <td><input id="090033_new_pw" type="password" value="" placeholder="새 암호를 입력하세요." class="form-control-sm"
+                style="width:160px" /></td>
+            <td><input id="090033_re_pw" type="password" value="" placeholder="암호를 다시 입력하세요." class="form-control-sm"
+                style="width:160px" /></td>
+            <td><input id="090033_use" type="checkbox" value="" class="form-control-sm" /></td>
+            <td class="name" onclick="edit_id(id)"><span class="badge rounded-pill text-bg-warning">Edit</span></td>
+            <td class="name" onclick="delete_id(id)"><span class="badge rounded-pill text-bg-warning">Delete</span>
+            </td>
+          </tr>
+
+
+        </tbody>
+      </table>
+      <!-- <div class="container"><span class="page" id="pagination"></span></div> -->
+    </div>
+
+  </div>
+  <!-- Modal -->
+  <div class="modal fade" id="manualinput" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+    aria-labelledby="manualinputLabel" aria-hidden="true">
+    <div class="modal-dialog" id="modal">
+      <!-- <div class="modal-content">
+    <div class="modal-header">
+      <h1 class="modal-title fs-5" id="manualinputLabel">수기 출고</h1>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body" id='manual_form'>
+      <div class="input-group input-group-sm mb-3">
+        <span class="input-group-text">장비명</span>
+
+        <select id="instrument_manual_search" class="form-select" onchange="instrument_select()">
+          <option selected>장비명</option>
+
+        </select>
+        <span class="input-group-text">분류</span>
+
+        <select id="code_manual_search" class="form-select" onchange="instrument_select()">
+          <option selected value="all">전체</option>
+          <option value="시약">시약</option>
+          <option value="Cal/QC">Cal/QC</option>
+          <option value="보조시약">보조시약</option>
+        </select>
+      </div>
+
+      <div class="input-group input-group-sm mb-3">
+        <span class="input-group-text">시약명</span>
+        <select id="name_manual_search" class="form-select" onchange="reagent_select()">
+          <option selected value="">시약명</option>
+        </select>
+      </div>
+      <div class="input-group input-group-sm mb-3">
+        <span class="input-group-text">Lot</span>
+
+        <select id="lot_manual_search" class="form-select">
+          <option selected value="">Lot</option>
+        </select>
+        <span class="input-group-text">출고일</span>
+        <input id="out_date_manual" type="date" class="form-control form-control-sm"  />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="manual_save()">등록/수정</button>
+    </div> -->
+    </div>
+  </div>
+</body>
+
+</html>

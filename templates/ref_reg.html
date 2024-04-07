@@ -9,13 +9,13 @@
   <script src="/static/script.js"></script>
   <script src="/static/jquery-3.7.1.min.js"></script>
 
-  <link href="/static/bootstrap-5.3.2/css/bootstrap.min.css" rel="stylesheet"
-    integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-  <script src="/static/bootstrap-5.3.2/js/bootstrap.bundle.min.js"
-    integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm"
     crossorigin="anonymous"></script>
 
-    <link rel="icon" type="image/x-icon" href="/static.favicon.ico">
+  <link rel="icon" type="image/x-icon" href="/static.favicon.ico">
 
   <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" type="text/css" href="/static/styles.css">
@@ -29,12 +29,13 @@
   <script>
 
     $(document).ready(function () {
-      select();
+      instrument_and_user_list();
       search1();
+      reagent();
     });
 
-    function select() {
-      fetch('/select').then((res) => res.json()).then((data) => {
+    function instrument_and_user_list() {
+      fetch('/instrument_and_user_list').then((res) => res.json()).then((data) => {
         let rows = data['instrument']
         console.log(rows)
         let rows2 = data['user']
@@ -61,7 +62,7 @@
       });
     }
     function select2() {
-      fetch('/select').then((res) => res.json()).then((data) => {
+      fetch('/instrument_and_user_list').then((res) => res.json()).then((data) => {
         let rows2 = data['instrument']
 
         rows2.forEach((b) => {
@@ -139,7 +140,103 @@
       search1();
     };
 
-    function save_order() {
+    function reagent_info() {
+      let name_value = document.getElementById("name");
+      let name = name_value.value
+      let gtin = $("#gtin").val();
+      let formData = new FormData();
+      formData.append("name",name);
+      formData.append("gtin",gtin);
+      fetch('/reagent_info', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+        
+
+        detail = data[0]
+
+        if (detail == null) {
+         
+          // $("#detail_form").removeClass("detail").addClass("detail2")
+          // $("#edit_butten").empty();
+          // let temp_html = `
+          //   <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="del_modal()">삭제</button>
+          //   <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="edit_modal('r')">등록</button>`
+          // $("#edit_butten").append(temp_html);
+          $("#order-box").empty();
+
+        }
+        else {
+          let instrument = detail['instrument']
+          let code = detail['code'];
+          let temp = detail['temp'];
+          let volume = detail['volume'];
+          let total_ea = detail['total_ea'];
+          let onboard = detail['onboard']
+          let unit = detail['unit'];
+          let make_onboard = detail['make_onboard_day']
+          let manufact = detail['manufact']
+          let gtin_value = detail['gtin']
+          let etc = detail['etc']
+          let print_form = detail['print_form']
+            let howinreagent = etc !== null ? etc : '';
+          console.log(data)
+          // console.log(name, instrument, code, temp, volume, total_ea, onboard, gtin)
+          
+          $("#instrument").val(instrument);
+          $("#code").val(code);
+          $("#temp").val(temp);
+          $("#volume").val(volume);
+          $("#unit").val(unit);
+          $("#total_ea").val(total_ea);
+          $("#onboard").val(onboard);
+          $("#make_onboard").val(make_onboard)
+          $("#manufact").val(manufact);
+          $("#etc").val(howinreagent);
+          $("#print_form").val(print_form)
+          // $("#detail_form").removeClass("detail2").addClass("detail")
+          // $("#edit_butten").empty()
+          // let temp_html = `
+          //     <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="del_modal()">삭제</button>
+          //     <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="edit_modal('r')">등록</button>`
+          // $("#edit_butten").append(temp_html)
+          $("#order-box").empty();
+
+
+
+          data.forEach((c) => {
+            let name = c["name"];
+            let code = c["code"];
+            let instrument = c['instrument']
+            let temp = c['temp']
+            let gtin = c['gtin']
+            let volume = c['volume']
+            let total_ea = c['total_ea']
+            let onboard = c['onboard']
+            let manufact = c['manufact']
+            let unit = c['unit']
+            // console.log(status)
+
+            let temp_html = `
+                <tr>
+                  <td>${instrument}</td>
+                  <td>${code}</td>
+                  <td>${name}</td>
+                  <td>${temp}</td>
+                  <td>${volume}</td>
+                  <td>${unit}</td>
+                  <td>${total_ea}</td>
+                  <td>${onboard}</td>
+                  <td rowspan="2" class="name" onclick="edit('${gtin}')"><span class="badge rounded-pill text-bg-warning">Edit/Del</span></td>
+                </tr>
+                <tr>
+                  <td colspan="8">${manufact}</td>
+                </tr>`
+            $("#order-box").append(temp_html);
+          });
+        }
+      })
+
+    }
+
+    function search_reagent() {
       var input = document.getElementById("barcode");
       if (input.value === "") {
         alert("바코드를 입력해주세요.");
@@ -150,10 +247,11 @@
       input.focus();
       let barcode = $("#barcode").val();
       // let type = $("#type").val();
-      let gtin = barcode.substr(2, 14);
+      let gtin = barcode.substring(2, 16);
+      let check = barcode.slice(0, 2);
 
       let formData = new FormData();
-      formData.append("gtin", gtin);
+      formData.append("gtin", barcode);
 
 
       fetch('/reg_barcode', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
@@ -161,379 +259,229 @@
         detail = data[0]
 
         if (detail == null) {
-          $("#detail").empty()
-          let temp_html = `<div class="detail2">
-          <form class="row g-2">
-            <div class="col-md-7" id="nameform">
-              <label for="name" class="form-label">시약명</label>
-              <input type="text" class="form-control" id="name" >
-            </div>
-            <div class="col-md-5" id="gtinform">
-              <label for="gtin" class="form-label">등록번호</label>
-              <input type="text" class="form-control" id="gtin" value="${gtin}">
-            </div>
-            <div class="col-md-4" id="instrumentform">
-              <label for="instrument" class="form-label">장비명</label>
-              <select id="instrument" class="form-select">
-                <option selected >Choose...</option>
-              </select>
-            </div>
-            <div class="col-md-3" id="codeform">
-              <label for="code" class="form-label">분류</label>
-              <select id="code" class="form-select">
-                <option selected >Choose...</option>
-                <option value="시약">시약</option>
-                <option value="Cal/QC">Cal/QC</option>
-                <option value="보조시약">보조시약</option>
-              </select>
-            </div>
-            <div class="col-md-3" id="tempform">
-              <label for="temp" class="form-label">보관온도</label>
-              <select id="temp" class="form-select">
-                <option selected >Choose...</option>
-                <option value="냉장">냉장</option>
-                <option value="실온">실온</option>
-                <option value="냉동">냉동</option>
-              </select>
-            </div>
-            <div class="col-md-3" id="volumeform">
-              <label for="volumn" class="form-label">테스트수</label>
-              <input type="number" class="form-control" id="volume" >
-            </div>
-            <div class="col-md-3" id="total_eaform">
-              <label for="total_ea" class="form-label">포장수량</label>
-              <input type="number" class="form-control" id="total_ea" >
-            </div>
-            <div class="col-md-3" id="onboardform">
-              <label for="total_ea" class="form-label">기본장착수량</label>
-              <input type="number" class="form-control" id="onboard" >
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="del_modal()">
-                삭제
-              </button>
-              <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="edit_modal('r')">등록</button>
-            </div>
-          </form>
-        </div>`
-          $("#detail").append(temp_html)
+          let gtin_value = (check === '01') ? `${gtin}` : ''
+          $("#gtin").val(gtin_value)
+          $("#detail_form").removeClass("detail").addClass("detail2")
+          $("#edit_butten").empty();
+          let temp_html = `
+            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="del_modal()">삭제</button>
+            <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="edit_modal('r')">등록</button>`
+          $("#edit_butten").append(temp_html);
+          $("#order-box").empty();
+
         }
         else {
           let name = detail['name'];
+          let post_name = detail['name'];
           let instrument = detail['instrument']
           let code = detail['code'];
           let temp = detail['temp'];
           let volume = detail['volume'];
           let total_ea = detail['total_ea'];
           let onboard = detail['onboard']
+          let unit = detail['unit'];
+          let make_onboard = detail['make_onboard_day']
+          let manufact = detail['manufact']
+          let gtin_value = detail['gtin']
+          let etc = detail['etc']
+          let print_form = detail['print_form']
+            let howinreagent = etc !== null ? etc : '';
           console.log(data)
-          console.log(name, instrument, code, temp, volume, total_ea, onboard, gtin)
+          // console.log(name, instrument, code, temp, volume, total_ea, onboard, gtin)
+          $("#name").val(name);
+          $("#post_name").val(post_name);
+          $("#gtin").val(gtin_value);
+          $("#instrument").val(instrument);
+          $("#post_instrument").val(instrument);
+          $("#code").val(code);
+          $("#temp").val(temp);
+          $("#volume").val(volume);
+          $("#unit").val(unit);
+          $("#total_ea").val(total_ea);
+          $("#onboard").val(onboard);
+          $("#make_onboard").val(make_onboard)
+          $("#manufact").val(manufact);
+          $("#etc").val(howinreagent);
+          $("#print_form").val(print_form);
+          $("#detail_form").removeClass("detail2").addClass("detail")
+          $("#edit_butten").empty()
+          let temp_html = `
+              <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="del_modal()">삭제</button>
+              <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="edit_modal('e')">수정</button>`
+          $("#edit_butten").append(temp_html)
+          $("#order-box").empty();
 
-          $("#detail").empty()
-          let temp_html = `<div class="detail">
-          <form class="row g-2">
-            <div class="col-md-7" id="nameform">
-              <label for="name" class="form-label">시약명</label>
-              <input type="text" class="form-control" id="name" value="${name}">
-            </div>
-            <div class="col-md-5" id="gtinform">
-              <label for="gtin" class="form-label">등록번호</label>
-              <input type="text" class="form-control" id="gtin" value="${gtin}">
-            </div>
-            <div class="col-md-4" id="instrumentform">
-              <label for="instrument" class="form-label">장비명</label>
-              <select id="instrument" class="form-select">
-                <option selected value="${instrument}">${instrument}</option>
-              </select>
-            </div>
-            <div class="col-md-3" id="codeform">
-              <label for="code" class="form-label">분류</label>
-              <select id="code" class="form-select">
-                <option selected value="${code}">${code}</option>
-                <option value="시약">시약</option>
-                <option value="Cal/QC">Cal/QC</option>
-                <option value="보조시약">보조시약</option>
-              </select>
-            </div>
-            <div class="col-md-3" id="tempform">
-              <label for="temp" class="form-label">보관온도</label>
-              <select id="temp" class="form-select">
-                <option selected value="${temp}">${temp}</option>
-                <option value="냉장">냉장</option>
-                <option value="실온">실온</option>
-                <option value="냉동">냉동</option>
-              </select>
-            </div>
-            <div class="col-md-3" id="volumeform">
-              <label for="volumn" class="form-label">테스트수</label>
-              <input type="number" class="form-control" id="volume" value="${volume}">
-            </div>
-            <div class="col-md-3" id="total_eaform">
-              <label for="total_ea" class="form-label">포장수량</label>
-              <input type="number" class="form-control" id="total_ea" value="${total_ea}">
-            </div>
-            <div class="col-md-3" id="onboardform">
-              <label for="total_ea" class="form-label">기본장착수량</label>
-              <input type="number" class="form-control" id="onboard" value="${onboard}">
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="del_modal()">
-                삭제
-              </button>
-              <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="edit_modal('e')">수정</button>
-            </div>
-          </form>
-        </div>`
-          $("#detail").append(temp_html)
 
+
+          data.forEach((c) => {
+            let name = c["name"];
+            let code = c["code"];
+            let instrument = c['instrument']
+            let temp = c['temp']
+            let gtin = c['gtin']
+            let volume = c['volume']
+            let total_ea = c['total_ea']
+            let onboard = c['onboard']
+            let manufact = c['manufact']
+            let unit = c['unit']
+            // console.log(status)
+
+            let temp_html = `
+                <tr>
+                  <td>${instrument}</td>
+                  <td>${code}</td>
+                  <td>${name}</td>
+                  <td>${temp}</td>
+                  <td>${volume}</td>
+                  <td>${unit}</td>
+                  <td>${total_ea}</td>
+                  <td>${onboard}</td>
+                  <td rowspan="2" class="name" onclick="edit('${gtin}')"><span class="badge rounded-pill text-bg-warning">Edit/Del</span></td>
+                </tr>
+                <tr>
+                  <td colspan="8">${manufact}</td>
+                </tr>`
+            $("#order-box").append(temp_html);
+          });
         }
-
-
-        select2();
-
-
+        // select2();
         var inputbarcode = document.getElementById("barcode");
         inputbarcode.value = "";
         let input_name = document.getElementById("name");
-      
-      input_name.focus();
-    
-
+        input_name.focus();
       });
     }
+
     function edit_modal2(mode) {
 
-      let post_gtin = $("#gtin").val();
-      let post_name = $("#name").val();
-      let post_instrument = $("#instrument").val();
-      let post_code = $("#code").val();
-      let post_temp = $("#temp").val();
-      let post_volume = $("#volume").val();
-      let post_total_ea = $("#total_ea").val();
-      let post_onboard = $("#onboard").val();
+      let gtin = $("#gtin").val();
+      let name = $("#name").val();
+      let post_name = $("#post_name").val();
+      let instrument = $("#instrument").val();
+      let post_instrument = $("#post_instrument").val();
+      let code = $("#code").val();
+      let temp = $("#temp").val();
+      let volume = $("#volume").val();
+      let total_ea = $("#total_ea").val();
+      let onboard = $("#onboard").val();
+      let unit = $("#unit").val();
+      let manufact = $("#manufact").val()
+      let make_onboard = $("#make_onboard").val()
+      let etc = $("#etc").val()
+      let print_form = $("#print_form").val()
+      let name_short = name.replace(/ /g, '_').replace(/\//g, '_').replace(/&/g, '_').replace(/\./g, '_').replace(/\%/g, '_')
 
-
+      // console.log(post_gtin,post_name,post_instrument,post_code,post_temp,post_volume,post_total_ea,post_onboard,post_unit,post_manufact,make_onboard,name_short,etc)
       let formData = new FormData();
-      formData.append("gtin_give", post_gtin);
-      formData.append("name_give", post_name);
-      formData.append("instrument_give", post_instrument);
-      formData.append("code_give", post_code);
-      formData.append("temp_give", post_temp);
-      formData.append("volume_give", post_volume);
-      formData.append("total_ea_give", post_total_ea);
-      formData.append("onboard_give", post_onboard);
+      formData.append("gtin", gtin);
+      formData.append("name", name);
+      formData.append("post_name",post_name);
+      formData.append("instrument", instrument);
+      formData.append("post_instrument",post_instrument)
+      formData.append("code", code);
+      formData.append("temp", temp);
+      formData.append("volume", volume);
+      formData.append("total_ea", total_ea);
+      formData.append("onboard", onboard);
+      formData.append("unit", unit);
+      formData.append("manufact", manufact);
       formData.append("mode", mode);
+      formData.append("name_short", name_short);
+      formData.append("make_onboard", make_onboard);
+      formData.append("print_form", print_form)
+      formData.append("etc",etc);
 
 
-      fetch('/edit', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
-
+      fetch('/reg_edit', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+        reagent()
         search1();
       });
-      $("#detail").empty()
-      let temp_html = `<div class="detail">
-          <form class="row g-2">
-            <div class="col-md-7" id="nameform">
-              <label for="name" class="form-label">시약명</label>
-              <input type="text" class="form-control" id="name" >
-            </div>
-            <div class="col-md-5" id="gtinform">
-              <label for="gtin" class="form-label">등록번호</label>
-              <input type="text" class="form-control" id="gtin" >
-            </div>
-            <div class="col-md-4" id="instrumentform">
-              <label for="instrument" class="form-label">장비명</label>
-              <select id="instrument" class="form-select">
-                <option selected >Choose...</option>
-              </select>
-            </div>
-            <div class="col-md-3" id="codeform">
-              <label for="code" class="form-label">분류</label>
-              <select id="code" class="form-select">
-                <option selected >Choose...</option>
-                <option value="시약">시약</option>
-                <option value="Cal/QC">Cal/QC</option>
-                <option value="보조시약">보조시약</option>
-              </select>
-            </div>
-            <div class="col-md-3" id="tempform">
-              <label for="temp" class="form-label">보관온도</label>
-              <select id="temp" class="form-select">
-                <option selected >Choose...</option>
-                <option value="냉장">냉장</option>
-                <option value="실온">실온</option>
-                <option value="냉동">냉동</option>
-              </select>
-            </div>
-            <div class="col-md-3" id="volumeform">
-              <label for="volumn" class="form-label">테스트수</label>
-              <input type="number" class="form-control" id="volume" >
-            </div>
-            <div class="col-md-3" id="total_eaform">
-              <label for="total_ea" class="form-label">포장수량</label>
-              <input type="number" class="form-control" id="total_ea" >
-            </div>
-            <div class="col-md-3" id="onboardform">
-              <label for="total_ea" class="form-label">기본장착수량</label>
-              <input type="number" class="form-control" id="onboard" >
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="del_modal()">
-                삭제
-              </button>
-              <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="edit_modal()">등록</button>
-            </div>
-          </form>
-        </div>`
-      $("#detail").append(temp_html);
-      select();
-
-      // console.log(post_gtin);
+      $("#name").val("");
+      $("#post_name").val("");
+      $("#gtin").val("");
+      $("#instrument").val("");
+      $("#post_instrument").val("");
+      $("#code").val("");
+      $("#temp").val("");
+      $("#volume").val("");
+      $("#unit").val("");
+      $("#total_ea").val("");
+      $("#onboard").val("");
+      $("#make_onboard").val("");
+      $("#manufact").val("");
+      $("#etc").val("");
+      $("#print_form").val("");
+      $("#edit_butten").empty()
+      let temp_html = `
+        <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="del_modal()">삭제</button>
+        <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="edit_modal('r')">등록</button>`
+      $("#edit_butten").append(temp_html);
     }
 
     function edit(gtin) {
-      let formData = new FormData();
-      formData.append("gtin", gtin);
 
+      let check = "01"
+      let barcode = check + gtin
+      console.log(gtin, barcode)
+      let formData = new FormData();
+      formData.append("gtin", barcode);
 
       fetch('/reg_barcode', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
         // console.log(data);
         detail = data[0]
 
         if (detail == null) {
-          $("#detail").empty()
-          let temp_html = `<div class="detail2">
-          <form class="row g-2">
-            <div class="col-md-7" id="nameform">
-              <label for="name" class="form-label">시약명</label>
-              <input type="text" class="form-control" id="name" >
-            </div>
-            <div class="col-md-5" id="gtinform">
-              <label for="gtin" class="form-label">등록번호</label>
-              <input type="text" class="form-control" id="gtin" value="${gtin}">
-            </div>
-            <div class="col-md-4" id="instrumentform">
-              <label for="instrument" class="form-label">장비명</label>
-              <select id="instrument" class="form-select">
-                <option selected >Choose...</option>
-              </select>
-            </div>
-            <div class="col-md-3" id="codeform">
-              <label for="code" class="form-label">분류</label>
-              <select id="code" class="form-select">
-                <option selected >Choose...</option>
-                <option value="시약">시약</option>
-                <option value="Cal/QC">Cal/QC</option>
-                <option value="보조시약">보조시약</option>
-              </select>
-            </div>
-            <div class="col-md-3" id="tempform">
-              <label for="temp" class="form-label">보관온도</label>
-              <select id="temp" class="form-select">
-                <option selected >Choose...</option>
-                <option value="냉장">냉장</option>
-                <option value="실온">실온</option>
-                <option value="냉동">냉동</option>
-              </select>
-            </div>
-            <div class="col-md-3" id="volumeform">
-              <label for="volumn" class="form-label">테스트수</label>
-              <input type="number" class="form-control" id="volume" >
-            </div>
-            <div class="col-md-3" id="total_eaform">
-              <label for="total_ea" class="form-label">포장수량</label>
-              <input type="number" class="form-control" id="total_ea" >
-            </div>
-            <div class="col-md-3" id="onboardform">
-              <label for="total_ea" class="form-label">기본장착수량</label>
-              <input type="number" class="form-control" id="onboard" >
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="del_modal()">
-                삭제
-              </button>
-              <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="edit_modal('r')">등록</button>
-            </div>
-          </form>
-        </div>`
-          $("#detail").append(temp_html)
+          $("#gtin").val(gtin);
+          $("#detail_form").removeClass("detail").addClass("detail2")
+          $("#edit_butten").empty();
+          let temp_html = `
+            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="del_modal()">삭제</button>
+            <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="edit_modal('r')">등록</button>`
+          $("#edit_butten").append(temp_html);
         }
         else {
           let name = detail['name'];
+          let post_name = detail['name'];
           let instrument = detail['instrument']
           let code = detail['code'];
           let temp = detail['temp'];
           let volume = detail['volume'];
           let total_ea = detail['total_ea'];
           let onboard = detail['onboard']
+          let unit = detail['unit']
+          let make_onboard = detail['make_onboard_day']
+          let manufact = detail['manufact']
+          let etc = detail['etc']
+          let print_form = detail['print_form']
+            let howinreagent = etc !== null ? etc : '';
           console.log(data)
           console.log(name, instrument, code, temp, volume, total_ea, onboard, gtin)
-
-          $("#detail").empty()
-          let temp_html = `<div class="detail">
-          <form class="row g-2">
-            <div class="col-md-7" id="nameform">
-              <label for="name" class="form-label">시약명</label>
-              <input type="text" class="form-control" id="name" value="${name}">
-            </div>
-            <div class="col-md-5" id="gtinform">
-              <label for="gtin" class="form-label">등록번호</label>
-              <input type="text" class="form-control" id="gtin" value="${gtin}">
-            </div>
-            <div class="col-md-4" id="instrumentform">
-              <label for="instrument" class="form-label">장비명</label>
-              <select id="instrument" class="form-select">
-                <option selected value="${instrument}">${instrument}</option>
-              </select>
-            </div>
-            <div class="col-md-3" id="codeform">
-              <label for="code" class="form-label">분류</label>
-              <select id="code" class="form-select">
-                <option selected value="${code}">${code}</option>
-                <option value="시약">시약</option>
-                <option value="Cal/QC">Cal/QC</option>
-                <option value="보조시약">보조시약</option>
-              </select>
-            </div>
-            <div class="col-md-3" id="tempform">
-              <label for="temp" class="form-label">보관온도</label>
-              <select id="temp" class="form-select">
-                <option selected value="${temp}">${temp}</option>
-                <option value="냉장">냉장</option>
-                <option value="실온">실온</option>
-                <option value="냉동">냉동</option>
-              </select>
-            </div>
-            <div class="col-md-3" id="volumeform">
-              <label for="volumn" class="form-label">테스트수</label>
-              <input type="number" class="form-control" id="volume" value="${volume}">
-            </div>
-            <div class="col-md-3" id="total_eaform">
-              <label for="total_ea" class="form-label">포장수량</label>
-              <input type="number" class="form-control" id="total_ea" value="${total_ea}">
-            </div>
-            <div class="col-md-3" id="onboardform">
-              <label for="total_ea" class="form-label">기본장착수량</label>
-              <input type="number" class="form-control" id="onboard" value="${onboard}">
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="del_modal()">
-                삭제
-              </button>
-              <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="edit_modal('e')">수정</button>
-            </div>
-          </form>
-        </div>`
-          $("#detail").append(temp_html)
-
+          $("#name").val(name);
+          $("#post_name").val(post_name);
+          $("#gtin").val(gtin);
+          $("#instrument").val(instrument);
+          $("#post_instrument").val(instrument);
+          $("#code").val(code);
+          $("#temp").val(temp);
+          $("#volume").val(volume);
+          $("#unit").val(unit);
+          $("#total_ea").val(total_ea);
+          $("#onboard").val(onboard);
+          $("#make_onboard").val(make_onboard);
+          $("#manufact").val(manufact);
+          $("#etc").val(howinreagent);
+          $("#detail_form").removeClass("detail2").addClass("detail")
+          $("#print_form").val(print_form)
+          $("#edit_butten").empty();
+          let temp_html = `
+            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="del_modal()">삭제</button>
+            <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="edit_modal('e')">수정</button>`
+          $("#edit_butten").append(temp_html);
         }
 
-
-        select2();
+        // select2();
         let input_name = document.getElementById("name");
-      
         input_name.focus();
-      
-
       });
     }
 
@@ -567,19 +515,25 @@
           let volume = c['volume']
           let total_ea = c['total_ea']
           let onboard = c['onboard']
+          let manufact = c['manufact']
+          let unit = c['unit']
           // console.log(status)
 
-          let temp_html = `          <tr >
-            <td>${instrument}</td>
-            <td>${code}</td>
-            <td>${name}</td>
-            <td>${temp}</td>
-            <td>${volume}</td>
-            <td>${total_ea}</td>
-            <td>${onboard}</td>
-            
-            <td><button onclick="edit('${gtin}')" class="btn btn-warning btn-sm">수정/삭제</button></tr>
-          </tr>`;
+          let temp_html = `
+            <tr>
+              <td>${instrument}</td>
+              <td>${code}</td>
+              <td>${name}</td>
+              <td>${temp}</td>
+              <td>${volume}</td>
+              <td>${unit}</td>
+              <td>${total_ea}</td>
+              <td>${onboard}</td>
+              <td rowspan="2" class="name" onclick="edit('${gtin}')"><span class="badge rounded-pill text-bg-warning">Edit/Del</span></td>
+            </tr>
+            <tr>
+              <td colspan="8">${manufact}</td>
+            </tr>`
           $("#order-box").append(temp_html);
 
         });
@@ -590,78 +544,39 @@
     }
     function del() {
       let gtin = $("#gtin").val();
-
-
       let formData = new FormData();
       formData.append("gtin", gtin);
 
       fetch('/del_reg', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
-
+        reagent()
         search1();
       });
-      $("#detail").empty()
-      let temp_html = `<div class="detail">
-          <form class="row g-2">
-            <div class="col-md-7" id="nameform">
-              <label for="name" class="form-label">시약명</label>
-              <input type="text" class="form-control" id="name" >
-            </div>
-            <div class="col-md-5" id="gtinform">
-              <label for="gtin" class="form-label">등록번호</label>
-              <input type="text" class="form-control" id="gtin" >
-            </div>
-            <div class="col-md-4" id="instrumentform">
-              <label for="instrument" class="form-label">장비명</label>
-              <select id="instrument" class="form-select">
-                <option selected >Choose...</option>
-              </select>
-            </div>
-            <div class="col-md-3" id="codeform">
-              <label for="code" class="form-label">분류</label>
-              <select id="code" class="form-select">
-                <option selected >Choose...</option>
-                <option value="시약">시약</option>
-                <option value="Cal/QC">Cal/QC</option>
-                <option value="보조시약">보조시약</option>
-              </select>
-            </div>
-            <div class="col-md-3" id="tempform">
-              <label for="temp" class="form-label">보관온도</label>
-              <select id="temp" class="form-select">
-                <option selected >Choose...</option>
-                <option value="냉장">냉장</option>
-                <option value="실온">실온</option>
-                <option value="냉동">냉동</option>
-              </select>
-            </div>
-            <div class="col-md-3" id="volumeform">
-              <label for="volumn" class="form-label">테스트수</label>
-              <input type="number" class="form-control" id="volume" >
-            </div>
-            <div class="col-md-3" id="total_eaform">
-              <label for="total_ea" class="form-label">포장수량</label>
-              <input type="number" class="form-control" id="total_ea" >
-            </div>
-            <div class="col-md-3" id="onboardform">
-              <label for="total_ea" class="form-label">기본장착수량</label>
-              <input type="number" class="form-control" id="onboard" >
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="del_modal()">
-                삭제
-              </button>
-              <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="edit_modal()">등록</button>
-            </div>
-          </form>
-        </div>`
-      $("#detail").append(temp_html);
-      select();
+      $("#name").val("");
+      $("#post_name").val("")
+      $("#gtin").val("");
+      $("#instrument").val("");
+      $("#post_instrument").val("");
+      $("#code").val("");
+      $("#temp").val("");
+      $("#volume").val("");
+      $("#unit").val("");
+      $("#total_ea").val("");
+      $("#onboard").val("");
+      $("#make_onboard").val("");
+      $("#manufact").val("");
+      $("#etc").val("")
+      $("#print_form").val("")
+      $("#edit_butten").empty()
+      let temp_html = `
+        <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="del_modal()">삭제</button>
+        <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" onclick="edit_modal('r')">등록</button>`
+      $("#edit_butten").append(temp_html);
     }
     function enterkey() {
       if (window.event.keyCode == 13) {
 
         // 엔터키가 눌렸을 때 실행할 내용
-        save_order();
+        search_reagent();
       }
     }
     function enterkey2() {
@@ -673,7 +588,8 @@
     }
     function del_modal() {
       $("#modal").empty();
-      let temp_html = `<div class="modal-header">
+      let temp_html = `
+        <div class="modal-header">
           <h1 class="modal-title fs-5" id="manualinputLabel">경고</h1>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
@@ -681,7 +597,6 @@
           <div class="alert alert-danger" role="alert">
             시약 정보를 정말 삭제하겠습니까?
           </div>
-          
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -714,7 +629,8 @@
         return false;
       }
       $("#modal").empty();
-      let temp_html = `<div class="modal-header">
+      let temp_html = `
+        <div class="modal-header">
           <h1 class="modal-title fs-5" id="manualinputLabel">경고</h1>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
@@ -722,13 +638,13 @@
           <div class="alert alert-warning" role="alert">
             시약 정보를 정말 수정/등록하겠습니까?
           </div>
-          
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
           <button type="button" class="btn btn-warning" data-bs-dismiss="modal" onclick="edit_modal2('${mode}')">등록/수정</button>
         </div>`
       $("#modal").append(temp_html);
+      // reagent();
     }
 
   </script>
@@ -736,7 +652,7 @@
 </head>
 
 <body>
-  <div class="mask"></div>
+
   <div class="order">
     <!-- navigation -->
     <div>
@@ -755,11 +671,20 @@
               <li class="nav-item">
                 <a class="nav-link" href="#" onclick="out_index()">출고</a>
               </li>
+              <!-- <li class="nav-item">
+                <a class="nav-link" href="#" onclick="make_reagent()">제조</a>
+              </li> -->
               <li class="nav-item">
                 <a class="nav-link" href="#" onclick="total()">현황</a>
               </li>
               <li class="nav-item">
                 <a class="nav-link active" aria-current="page" href="#" onclick="ref_reg()">등록</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#" onclick="report()">보고</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#" onclick="admin()">사용자관리</a>
               </li>
             </ul>
           </div>
@@ -767,7 +692,7 @@
         <form class="container-fluid">
           <div class="input-group">
             <span class="input-group-text" id="basic-addon1">사용자</span>
-            <select class="form-select form-select-sm" id="user" onchange="change()">
+            <select class="form-select form-select-sm" id="user" onchange="user_change()">
               <option selected value="default">{{ user_info['name'] }}</option>
             </select>
             <span>
@@ -780,27 +705,29 @@
 
     <div class="order-info">
       <div class="input-group input-group-sm mb-3">
-        <span class="input-group-text">바코드검색</span>
-        <input id="barcode" type="text" class="form-control form-control-sm" onkeyup="enterkey();" autofocus />
+        <span class="input-group-text">검색</span>
+        <input id="barcode" list="reagent" type="text" class="form-control form-control-sm" onkeyup="enterkey();"
+          autofocus>
+        <datalist id="reagent">
+
+        </datalist>
         <span>
-          <type="button" class="btn btn-warning btn-sm" onclick="save_order()">입력</button>
+          <type="button" class="btn btn-warning btn-sm" onclick="search_reagent()">입력</button>
         </span>
         <span>
           <type="button" class="btn btn-primary btn-sm" onclick="ref_reg()">초기화</button>
         </span>
-
-
       </div>
 
 
       <div class="inreagent" id="detail">
-
-
-        <div class="detail">
+        <div class="detail" id="detail_form">
           <form class="row g-2">
             <div class="col-md-7" id="nameform">
               <label for="name" class="form-label">시약명</label>
-              <input type="text" class="form-control" id="name">
+              <input type="text" list="reagent" class="form-control" id="name" onchange="reagent_info()">
+              <input type="text" class="form-control" id="post_name" hidden>
+              <input type="text" class="form-control" id="post_instrument" hidden>
             </div>
 
 
@@ -811,53 +738,82 @@
             <div class="col-md-4" id="instrumentform">
               <label for="instrument" class="form-label">장비명</label>
               <select id="instrument" class="form-select">
-                <option selected>Choose...</option>
+                <option value="" selected>Choose...</option>
 
               </select>
             </div>
-            <div class="col-md-3" id="codeform">
+            <div class="col-md-2" id="codeform">
               <label for="code" class="form-label">분류</label>
               <select id="code" class="form-select">
-                <option selected>Choose...</option>
+                <option value="" selected>Choose...</option>
                 <option value="시약">시약</option>
                 <option value="Cal/QC">Cal/QC</option>
                 <option value="보조시약">보조시약</option>
+                <option value="소모품">소모품</option>
 
               </select>
             </div>
-            <div class="col-md-3" id="tempform">
+            <div class="col-md-2" id="tempform">
               <label for="temp" class="form-label">보관온도</label>
               <select id="temp" class="form-select">
-                <option selected>Choose...</option>
+                <option value="" selected>Choose...</option>
                 <option value="냉장">냉장</option>
                 <option value="실온">실온</option>
                 <option value="냉동">냉동</option>
               </select>
             </div>
-            <div class="col-md-3" id="volumeform">
+            <div class="col-md-2" id="volumeform">
               <label for="volumn" class="form-label">테스트수</label>
               <input type="number" class="form-control" id="volume">
 
             </div>
-            <div class="col-md-3" id="total_eaform">
+            <div class="col-md-2" id="unitform">
+              <label for="volumn" class="form-label">단위</label>
+              <input type="text" class="form-control" id="unit">
+
+            </div>
+            <div class="col-md-2" id="total_eaform">
               <label for="total_ea" class="form-label">포장수량</label>
               <input type="number" class="form-control" id="total_ea">
 
             </div>
-            <div class="col-md-3" id="onboardform">
+            <div class="col-md-2" id="onboardform">
               <label for="total_ea" class="form-label">기본장착수량</label>
               <input type="number" class="form-control" id="onboard">
 
             </div>
+            <div class="col-md-2" id="make_onboardform">
+              <label for="make_onboard" class="form-label">제조유효기간(일)</label>
+              <input type="number" class="form-control" id="make_onboard" value="0">
 
-            <div class="modal-footer">
+            </div>
+            <div class="col-md-4" >
+              <label for="etc" class="form-label">입고방법</label>
+              <textarea class="form-control" id="etc" rows="1"></textarea>
+
+            </div>
+            <div class="col-md-2" >
+              <label for="print_form" class="form-label">출고표시</label>
+              <select id="print_form" class="form-select">
+                <option value="" selected>Choose...</option>
+                <option value="reagent">reagent</option>
+                <option value="vial">vial</option>
+                
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="manufactform" class="form-label">조제방법</label>
+              <textarea class="form-control" id="manufact" rows="1"></textarea>
+            </div>
+
+            <div class="modal-footer" id="edit_butten">
 
               <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal"
                 onclick="del_modal()">
                 삭제
               </button>
               <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal"
-                onclick="edit_modal()">등록/수정</button>
+                onclick="edit_modal('r')">등록</button>`
             </div>
 
           </form>
@@ -881,6 +837,7 @@
           <option value="시약">시약</option>
           <option value="Cal/QC">Cal/QC</option>
           <option value="보조시약">보조시약</option>
+          <option value="소모품">소모품</option>
 
         </select>
         <span class="input-group-text">시약명</span>
@@ -892,7 +849,7 @@
     </div>
 
     <div>
-      <table class="table">
+      <table class="table table-striped">
         <thead>
           <tr>
             <th scope="col">장비명</th>
@@ -900,21 +857,16 @@
             <th scope="col">시약명</th>
             <th scope="col">보관온도</th>
             <th scope="col">테스트수</th>
+            <th scope="col">단위</th>
             <th scope="col">포장수량</th>
             <th scope="col">장비장착수량</th>
-            <th scope="col">수정/삭제</th>
+            <th scope="col" rowspan="2" style="vertical-align : middle;">수정/삭제</th>
+          </tr>
+          <tr>
+            <th scope="col" colspan="8">조제방법</th>
           </tr>
         </thead>
         <tbody id="order-box" class="align-middle">
-          <!-- <tr>
-          <td>230303</td>
-          <td>reagent</td>
-          <td>123456</td>
-          <td>230323</td>
-
-          <td><button onclick="del_order()" class="btn btn-warning mybtn">삭제</button></td>
-        </tr> -->
-
         </tbody>
       </table>
     </div>
