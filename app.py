@@ -2,13 +2,13 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, s
 from flask_session import Session
 import pymysql
 from werkzeug.security import generate_password_hash,check_password_hash
-# import host
 from host import DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME, DB_CHARSET
-# import barcode2
 from barcode2 import analyze_barcode
 from datetime import datetime, date, timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
 from typing import Any, Dict
+import os
+import subprocess
 # from flask_sqlalchemy import SQLAlchemy
 # from db import db, User, In_reagent, Instrument, Ref_lib, Make_reagent
 # from sqlalchemy.exc import SQLAlchemyError
@@ -24,9 +24,46 @@ app.config['SESSION_TYPE'] = 'filesystem'
 Session(app)
 # db.init_app(app)
 
-scheduler = BackgroundScheduler()
-scheduler.start()
+backup_dir = os.path.join(os.getcwd(), "backup")
+if not os.path.exists(backup_dir):
+    os.makedirs(backup_dir)
 
+def backup_schedule():
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(func=backup_database, trigger='interval', hours=24)
+    scheduler.start()
+
+def backup_database():
+    # 현재 날짜를 계산하여 백업 파일명에 사용
+    current_time = datetime.now().strftime("%y%m%d")
+    backup_file = os.path.join(backup_dir, f"backup_{current_time}.sql")
+
+    # mysqldump를 사용하여 데이터베이스 백업
+    subprocess.run(["mysqldump", "-u", "username", "-p", "password", "REAGENT", ">", backup_file], shell=True)
+
+    # 백업 파일이 생성된 후, 지난 2달 간의 백업 파일을 보관하고 나머지는 삭제
+    delete_old_backups()
+
+def delete_old_backups():
+    # 현재 날짜에서 2달 전 날짜 계산
+    two_months_ago = datetime.now() - timedelta(days=60)
+
+    # 현재 백업 디렉토리의 모든 파일 검색
+    files = os.listdir(backup_dir)
+
+    # 파일마다 반복하면서 백업 파일 여부 확인
+    for file in files:
+        if file.startswith("backup_"):
+            # 파일명에서 날짜 부분 추출
+            file_date = file.split("_")[1].split(".")[0]
+            
+            # 파일의 날짜와 2달 전 날짜 비교하여 삭제
+            if datetime.strptime(file_date, "%y%m%d") < two_months_ago:
+                os.remove(os.path.join(backup_dir, file))
+
+# scheduler = BackgroundScheduler()
+# scheduler.start()
+backup_schedule()
 
 app.static_url_path = '/static'
 app.static_folder = 'static'
@@ -38,25 +75,25 @@ def template_exists(template_name):
     except Exception:
         return False
 
-def monthly_task():
-    # 매월 1일에 실행할 작업을 이곳에 추가하세요.
-    print("매월 1일에 실행되는 작업입니다.")
-    today = datetime.today()
+# def monthly_task():
+#     # 매월 1일에 실행할 작업을 이곳에 추가하세요.
+#     print("매월 1일에 실행되는 작업입니다.")
+#     today = datetime.today()
 
-    # 지난달의 마지막 날을 계산합니다.
-    last_day_of_last_month = today - timedelta(days=today.day)
+#     # 지난달의 마지막 날을 계산합니다.
+#     last_day_of_last_month = today - timedelta(days=today.day)
 
-    # 지난달의 첫째 날을 계산합니다.
-    first_day_of_last_month = last_day_of_last_month.replace(day=1)
+#     # 지난달의 첫째 날을 계산합니다.
+#     first_day_of_last_month = last_day_of_last_month.replace(day=1)
 
-    # 첫째 날과 마지막 날을 원하는 형식으로 출력합니다.
-    start = first_day_of_last_month.strftime("%Y-%m-%d")
-    end = last_day_of_last_month.strftime("%Y-%m-%d")
+#     # 첫째 날과 마지막 날을 원하는 형식으로 출력합니다.
+#     start = first_day_of_last_month.strftime("%Y-%m-%d")
+#     end = last_day_of_last_month.strftime("%Y-%m-%d")
 
-    print("지난달 첫째 날:", start)
-    print("지난달 마지막 날:", end)
+#     print("지난달 첫째 날:", start)
+#     print("지난달 마지막 날:", end)
 
-scheduler.add_job(monthly_task, 'cron', day='1', hour='0', minute='0')
+# scheduler.add_job(monthly_task, 'cron', day='1', hour='0', minute='0')
 
 #db 접속 함수
 def create_connection():
